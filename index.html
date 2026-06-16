@@ -491,6 +491,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
 
 <script>
 // ── AI API — proxy seguro via /api/ai (clave en Vercel, nunca en el HTML) ──
+async function callVision(b64,mime,prompt){
+  const r=await fetch("/api/vision",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({imageBase64:b64,mimeType:mime,prompt})
+  });
+  const data=await r.json();
+  if(!r.ok)throw new Error(data.error||"Vision API error");
+  return data.result;
+}
+
 async function callIA(parts,maxT=1000){
   const msgContent=[];
   for(const p of parts){
@@ -772,9 +783,13 @@ PESOS REALISTAS:
 REGLA MATEMÁTICA: calories = protein_g*4 + carbs_g*4 + fat_g*9. Verifica antes de responder.
 
 Responde SOLO JSON sin markdown: {"foods":[{"name":"nombre en español","grams":número,"calories":número,"protein_g":número,"carbs_g":número,"fat_g":número,"confidence":número_0_a_100,"note":"cómo lo interpretaste"}],"tip":"consejo breve en español"}`;
-  const parts=isImg?[{inline_data:{mime_type:mime,data:b64}},{text:prompt}]:[{text:prompt}];
+  let raw;
+  if(isImg){
+    raw=await callVision(b64,mime,prompt);
+  } else {
+    raw=await callIA([{text:prompt}],1200);
+  }
   try{
-    const raw=await callIA(parts,1200);
     let parsed;
     try{
       // Strip all markdown fences and whitespace
