@@ -481,19 +481,19 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
 <div class="mo" id="m-rec"><div class="ms"><div class="mh"></div><div style="font-size:52px;text-align:center;margin-bottom:8px" id="rm-e"></div><div style="font-size:22px;text-align:center;margin-bottom:8px;font-weight:700;letter-spacing:-0.3px" id="rm-n"></div><div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:18px" id="rm-m"></div><div class="label" style="margin-bottom:8px;color:var(--a)">INGREDIENTES</div><div id="rm-i" style="margin-bottom:16px"></div><div class="label" style="margin-bottom:8px;color:var(--a)">PREPARACIÓN</div><div id="rm-s" style="margin-bottom:22px"></div><button onclick="cM('m-rec')" class="btn btn-secondary">Cerrar</button></div></div>
 
 <script>
-// ── AI API (OpenRouter — modelo auto) ──
-const OR_KEY="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";
+// ── AI API — proxy seguro via /api/ai (clave en Vercel, nunca en el HTML) ──
 async function callIA(parts,maxT=1000){
   const msgContent=[];
   for(const p of parts){
     if(p.text)msgContent.push({type:"text",text:p.text});
     else if(p.inline_data)msgContent.push({type:"image_url",image_url:{url:"data:"+p.inline_data.mime_type+";base64,"+p.inline_data.data}});
   }
-  const r=await fetch("https://openrouter.ai/api/v1/chat/completions",{
+  const hasImage=msgContent.some(x=>x.type==="image_url");
+  const r=await fetch("/api/ai",{
     method:"POST",
-    headers:{"Content-Type":"application/json","Authorization":"Bearer "+OR_KEY,"HTTP-Referer":"https://nutri-ai.app","X-Title":"Nutri AI"},
+    headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
-      model:"openrouter/auto",
+      model:hasImage?"meta-llama/llama-4-scout-17b-16e-instruct":"llama-3.3-70b-versatile",
       max_tokens:maxT,
       temperature:0.3,
       messages:[{role:"user",content:msgContent}]
