@@ -492,14 +492,24 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
 <script>
 // ── AI API — proxy seguro via /api/ai (clave en Vercel, nunca en el HTML) ──
 async function callVision(b64,mime,prompt){
-  const r=await fetch("/api/vision",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({imageBase64:b64,mimeType:mime,prompt})
-  });
-  const data=await r.json();
-  if(!r.ok)throw new Error(data.error||"Vision API error");
-  return data.result;
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(),25000);
+  try{
+    const r=await fetch("/api/vision",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({imageBase64:b64,mimeType:mime,prompt}),
+      signal:ctrl.signal
+    });
+    clearTimeout(tid);
+    const data=await r.json();
+    if(!r.ok)throw new Error(data.error||"Vision API error");
+    return data.result;
+  }catch(e){
+    clearTimeout(tid);
+    if(e.name==="AbortError")throw new Error("La IA tardó demasiado. Intenta con una foto más pequeña.");
+    throw e;
+  }
 }
 
 async function callIA(parts,maxT=1000){
