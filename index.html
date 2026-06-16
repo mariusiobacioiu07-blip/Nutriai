@@ -310,6 +310,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
 <div id="ai-ld" style="display:none;flex-direction:column;align-items:center;gap:14px;padding:50px 0"><div class="spin"></div><div style="font-size:15px;font-weight:600">Analizando con IA...</div><div style="font-size:12px;color:var(--t2)">Identificando alimentos y estimando pesos</div></div>
 <div id="ai-rs" style="display:none;margin-top:6px">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div class="tag tag-blue" style="font-size:12px">✦ IA DETECTÓ</div><span style="font-size:12px;color:var(--t2)" id="ai-cf"></span></div>
+  <!-- Quick adjustment strip -->
+  <div id="ai-adjust" style="margin-bottom:14px;background:var(--s1);border-radius:14px;padding:12px 14px">
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.06em;color:var(--t3);margin-bottom:8px">¿LAS PORCIONES SON CORRECTAS?</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button onclick="scaleAll(0.75)" style="background:rgba(255,159,10,0.12);color:var(--orange);border-radius:99px;padding:7px 14px;font-size:12px;font-weight:600">−25% parece mucho</button>
+      <button onclick="scaleAll(1.0)" style="background:rgba(48,209,88,0.12);color:var(--green);border-radius:99px;padding:7px 14px;font-size:12px;font-weight:600">✓ Correcto</button>
+      <button onclick="scaleAll(1.25)" style="background:rgba(10,132,255,0.12);color:var(--a);border-radius:99px;padding:7px 14px;font-size:12px;font-weight:600">+25% parece poco</button>
+    </div>
+  </div>
   <div id="ai-fl"></div>
   <div id="ai-tip" style="display:none;background:var(--s2);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;color:var(--t2);line-height:1.7"></div>
   <div class="card" style="margin-bottom:14px">
@@ -693,20 +702,45 @@ async function doText(){const txt=document.getElementById("txt-i").value.trim();
 async function aiCallG(text,b64,mime){
   const isImg=!!b64;
   const m=mt(),tgt=m?.target||2000;
-  const prompt=isImg?`Analiza esta imagen de comida. Identifica todos los alimentos y estima sus gramos con precisión.
+  const prompt=isImg?`Eres un nutricionista experto analizando una imagen de comida. Identifica cada alimento visible y estima los gramos con realismo estricto.
 
-REFERENCIAS por 100g: Pollo pechuga=165kcal P:31 C:0 G:3.6 | Arroz cocido=130 | Pasta cocida=131 P:5 C:25 G:1.1 | Pan=265 | Patata cocida=77 | Patata frita=312 | Salmon=208 | Huevo=155 (1 huevo=50g) | Aceite 1cda=88kcal | Ensalada verde=15 | Tomate=18 | Carne picada=215 P:26 G:12 | Queso=392
+NOMBRES: SIEMPRE en español (huevo duro, pechuga de pollo, arroz blanco, garbanzos cocidos, aguacate, queso feta, zanahoria rallada, tomate cherry, brócoli, pan de baguette, etc.)
 
-REGLAS: Estima gramos por tamaño visual | calories ≈ prot*4 + carbs*4 + fat*9 | plato normal pasta=220g cocinada | ración carne=150g
+VALORES NUTRICIONALES por 100g:
+Pechuga pollo plancha=165kcal P:31 C:0 G:3.6 | Muslo pollo=209 P:19 C:0 G:14 | Huevo duro=155 P:13 C:1.1 G:11 | Arroz blanco cocido=130 P:2.7 C:28 G:0.3 | Pasta cocida=131 P:5 C:25 G:1.1 | Pan baguette=275 P:9 C:55 G:2 | Patata cocida=77 P:2 C:17 G:0.1 | Salmón=208 P:20 C:0 G:13 | Atún lata=116 P:26 C:0 G:1 | Garbanzos cocidos=164 P:9 C:27 G:2.6 | Lentejas cocidas=116 P:9 C:20 G:0.4 | Aguacate=160 P:2 C:9 G:15 | Queso feta=264 P:14 C:4 G:21 | Queso manchego=392 P:27 C:0 G:32 | Tomate=18 P:0.9 C:3.9 G:0.2 | Tomate cherry=18 P:0.9 C:3.9 G:0.2 | Zanahoria=41 P:0.9 C:10 G:0.2 | Brócoli=34 P:2.8 C:7 G:0.4 | Espinacas=23 P:2.9 C:3.6 G:0.4 | Lechuga=15 P:1.4 C:2.9 G:0.2 | Pepino=16 P:0.7 C:3.6 G:0.1 | Cebolla=40 P:1.1 C:9.3 G:0.1 | Aceite oliva=884 P:0 C:0 G:100 (1 cucharada=10g) | Nueces=654 P:15 C:14 G:65 | Almendras=579 P:21 C:22 G:50
 
-Responde SOLO JSON sin markdown: {"foods":[{"name":"nombre español","grams":número,"calories":número,"protein_g":número,"carbs_g":número,"fat_g":número,"confidence":número_0_a_100}],"tip":"consejo nutricional breve"}
-Si no hay comida: {"error":"no_food"}`:`Eres nutricionista experto. El usuario describe: "${text}"
+PESOS REALES — ESTO ES CRÍTICO:
+- Huevo mediano: 50g (huevo grande: 60g). NUNCA más de 60g por huevo.
+- Pechuga pollo en bowl/ensalada: 80-120g (no es un filete entero)
+- Arroz en bowl: 80-120g cocinado (no 200g, eso es un plato principal)
+- Pasta en bowl: 100-150g cocinada
+- Filete de carne/pollo completo en plato: 130-180g
+- Verduras (zanahoria, brócoli, espinaca) en bowl: 50-80g por tipo
+- Tomates cherry en ensalada: 60-80g (unos 6-8 tomates)
+- Aguacate en rodajas en bowl: 60-80g (medio aguacate)
+- Garbanzos/legumbres en bowl: 60-80g
+- Queso feta en dados: 30-50g
+- Pan: 1 rebanada=30g, 1 trozo baguette=40-60g
+- Fruta entera mediana: manzana=150g, plátano=100g, naranja=150g
 
-TABLA por 100g: Pollo pechuga=165kcal P:31 C:0 G:3.6 | Pollo muslo=209 | Huevo entero=155 P:13 C:1 G:11 (1 huevo mediano=50g) | Arroz cocido=130 P:2.7 C:28 G:0.3 | Pasta cocida=131 P:5 C:25 G:1.1 | Pan blanco=265 P:9 C:49 G:3.2 | Pan integral=247 P:13 C:41 G:4.2 | Patata cocida=77 | Aceite oliva 1cda=88kcal | Salmon=208 P:20 C:0 G:13 | Atun lata=116 P:26 C:0 G:1 | Yogur griego=97 P:9 C:3.6 G:5 | Queso manchego=392 P:27 G:32 | Avena=389 P:17 C:66 G:7 | Leche=61 P:3.2 C:4.8 G:3.3 | Lentejas cocidas=116 P:9 C:20
-PESOS: 1 filete=150g | 1 plato pasta=220g | 1 plato arroz=200g | 1 rebanada pan=30g | 1 tostada=45g | 1 vaso leche=200ml | 1 cuenco avena=60g seco
-REGLAS: calories ≈ protein*4 + carbs*4 + fat*9 | frito añade 60kcal | estima gramos realistas
+REGLA TOTAL DEL PLATO: Si ves un bowl o plato con varios ingredientes, el total de todos los gramos NO debe superar 600-700g (un bowl normal pesa entre 400-650g con todo). Si tus estimaciones suman más, reduce proporcionalmente. Un plato de pasta solo puede llegar a 350-450g total.
 
-Responde SOLO JSON sin markdown: {"foods":[{"name":"nombre español","grams":número,"calories":número,"protein_g":número,"carbs_g":número,"fat_g":número,"confidence":número_0_a_100,"note":"cómo interpretaste"}],"tip":"consejo breve en español"}`;
+REGLA MATEMÁTICA: calories = protein_g*4 + carbs_g*4 + fat_g*9 (±5% tolerancia). Verifica cada alimento.
+
+Responde SOLO JSON sin markdown: {"foods":[{"name":"nombre en español","grams":número,"calories":número,"protein_g":número,"carbs_g":número,"fat_g":número,"confidence":número_0_a_100}],"tip":"consejo nutricional breve en español"}
+Si no hay comida visible: {"error":"no_food"}`:`Eres nutricionista experto. El usuario describe: "${text}"
+
+NOMBRES: SIEMPRE en español.
+
+TABLA NUTRICIONAL por 100g:
+Pechuga pollo plancha=165kcal P:31 C:0 G:3.6 | Muslo pollo=209 P:19 C:0 G:14 | Huevo entero=155 P:13 C:1.1 G:11 | Arroz cocido=130 P:2.7 C:28 G:0.3 | Pasta cocida=131 P:5 C:25 G:1.1 | Pan blanco=265 P:9 C:49 G:3.2 | Pan integral=247 P:13 C:41 G:4.2 | Pan baguette=275 P:9 C:55 G:2 | Patata cocida=77 P:2 C:17 G:0.1 | Patata frita=312 P:3.4 C:41 G:15 | Aceite oliva=884 (1 cda=10g→88kcal) | Salmón=208 P:20 C:0 G:13 | Atún lata=116 P:26 C:0 G:1 | Yogur griego=97 P:9 C:3.6 G:5 | Queso manchego=392 P:27 C:0 G:32 | Queso feta=264 P:14 C:4 G:21 | Avena seca=389 P:17 C:66 G:7 | Leche=61 P:3.2 C:4.8 G:3.3 | Garbanzos cocidos=164 P:9 C:27 G:2.6 | Lentejas cocidas=116 P:9 C:20 G:0.4 | Aguacate=160 P:2 C:9 G:15 | Tomate=18 | Zanahoria=41 | Brócoli=34 | Espinacas=23 | Lechuga=15
+
+PESOS REALISTAS:
+1 huevo mediano=50g (grande=60g, NUNCA más) | 1 filete pollo/carne=130-180g | ración pollo en ensalada/bowl=80-120g | 1 plato arroz=150-180g cocido | 1 plato pasta=180-220g cocido | 1 rebanada pan=30g | 1 tostada=40g | 1 trozo baguette=50g | 1 vaso leche=200ml | 1 cuenco avena=50g seco | medio aguacate=80g | 1 yogur griego=150g | ración garbanzos=80g | ración queso feta=40g
+
+REGLA MATEMÁTICA: calories = protein_g*4 + carbs_g*4 + fat_g*9. Verifica antes de responder.
+
+Responde SOLO JSON sin markdown: {"foods":[{"name":"nombre en español","grams":número,"calories":número,"protein_g":número,"carbs_g":número,"fat_g":número,"confidence":número_0_a_100,"note":"cómo lo interpretaste"}],"tip":"consejo breve en español"}`;
   const parts=isImg?[{inline_data:{mime_type:mime,data:b64}},{text:prompt}]:[{text:prompt}];
   try{
     const raw=await callIA(parts,1200);
@@ -773,37 +807,51 @@ async function autoDietCheck(data, tgt){
 function rAI(data){
   const foods=data.foods||[];
   const avgC=foods.length?Math.round(foods.reduce((a,f)=>a+(f.confidence||0),0)/foods.length):0;
-  document.getElementById("ai-cf").textContent=`Confianza: ${avgC}%`;
+  // Confidence badge with color
+  const cfCol=avgC>=85?"var(--green)":avgC>=70?"var(--a)":"var(--orange)";
+  const cfBg=avgC>=85?"rgba(48,209,88,0.12)":avgC>=70?"rgba(10,132,255,0.12)":"rgba(255,159,10,0.12)";
+  document.getElementById("ai-cf").innerHTML=`<span style="background:${cfBg};color:${cfCol};border-radius:99px;padding:4px 10px;font-size:12px;font-weight:700">Confianza ${avgC}%</span>`;
   document.getElementById("ai-fl").innerHTML=foods.map((f,i)=>{
-    const confCol=(f.confidence||0)>80?"rgba(48,209,88,0.08)":(f.confidence||0)>60?"rgba(10,132,255,0.08)":"rgba(255,69,58,0.08)";
-    const confTxt=(f.confidence||0)>80?"var(--green)":(f.confidence||0)>60?"var(--a)":"var(--red)";
+    const conf=f.confidence||0;
+    const confCol=conf>=85?"var(--green)":conf>=70?"var(--a)":"var(--orange)";
+    const confBg=conf>=85?"rgba(48,209,88,0.1)":conf>=70?"rgba(10,132,255,0.1)":"rgba(255,159,10,0.1)";
+    const confLabel=conf>=85?"Alta":conf>=70?"Media":"Baja";
     return `<div class="card" id="ai-card-${i}" style="margin-bottom:10px;animation:fadeUp 0.24s ease ${i*.05}s both">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div style="flex:1;min-width:0">
-          <input id="ai-name-${i}" value="${f.name}" style="font-weight:600;font-size:15px;background:transparent;border:none;border-bottom:1px solid var(--s3);color:var(--t1);width:100%;padding-bottom:2px;outline:none" onfocus="this.style.borderBottomColor='var(--a)'" onblur="this.style.borderBottomColor='var(--s3)';recalcAI(${i})">
+          <input id="ai-name-${i}" value="${f.name}" style="font-weight:700;font-size:15px;background:transparent;border:none;border-bottom:1.5px solid var(--s3);color:var(--t1);width:100%;padding-bottom:3px;outline:none" onfocus="this.style.borderBottomColor='var(--a)'" onblur="this.style.borderBottomColor='var(--s3)';recalcAI(${i})">
           <div style="font-size:11px;color:var(--t3);margin-top:4px">toca nombre o gramos para editar</div>
         </div>
         <div style="text-align:right;margin-left:12px;flex-shrink:0">
-          <div style="font-size:22px;font-weight:700;color:var(--a)" id="ai-cal-${i}">${f.calories||0}</div>
+          <div style="font-size:24px;font-weight:700;color:var(--a);line-height:1" id="ai-cal-${i}">${Math.round(f.calories||0)}</div>
           <div style="font-size:10px;color:var(--t3)">kcal</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span style="font-size:12px;color:var(--t2)">Gramos:</span>
-        <input id="ai-g-${i}" type="number" value="${f.grams||100}" min="1" style="width:80px;background:var(--s2);border:none;border-radius:8px;padding:6px 10px;color:var(--t1);font-size:14px;font-weight:700;text-align:center" oninput="recalcAI(${i})">
-        <span style="font-size:12px;color:var(--t3)">g</span>
-        <button onclick="removeAI(${i})" style="margin-left:auto;color:var(--red);font-size:13px;padding:4px 8px;background:rgba(255,69,58,0.1);border-radius:8px">✕ Quitar</button>
+      <!-- Confidence bar -->
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-size:10px;font-weight:600;letter-spacing:0.05em;color:var(--t3)">PRECISIÓN IA</span>
+          <span style="font-size:11px;font-weight:700;color:${confCol}">${confLabel} (${conf}%)</span>
+        </div>
+        <div style="height:3px;background:var(--s3);border-radius:99px;overflow:hidden">
+          <div style="height:100%;width:${conf}%;background:${confCol};border-radius:99px;transition:width 0.6s ease"></div>
+        </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
-        <div style="background:rgba(48,209,88,0.08);border-radius:10px;padding:7px;text-align:center"><div class="label" style="margin-bottom:2px">PROT</div><div style="font-weight:700;font-size:13px;color:var(--green)" id="ai-p-${i}">${+(f.protein_g||0).toFixed(1)}g</div></div>
-        <div style="background:rgba(10,132,255,0.08);border-radius:10px;padding:7px;text-align:center"><div class="label" style="margin-bottom:2px">CARBS</div><div style="font-weight:700;font-size:13px;color:var(--blue)" id="ai-c-${i}">${+(f.carbs_g||0).toFixed(1)}g</div></div>
-        <div style="background:rgba(255,159,10,0.08);border-radius:10px;padding:7px;text-align:center"><div class="label" style="margin-bottom:2px">GRASA</div><div style="font-weight:700;font-size:13px;color:var(--orange)" id="ai-f-${i}">${+(f.fat_g||0).toFixed(1)}g</div></div>
-        <div style="background:${confCol};border-radius:10px;padding:7px;text-align:center"><div class="label" style="margin-bottom:2px">CONF.</div><div style="font-weight:700;font-size:13px;color:${confTxt}">${f.confidence||0}%</div></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:12px;color:var(--t2);font-weight:500">Gramos:</span>
+        <input id="ai-g-${i}" type="number" value="${f.grams||100}" min="1" style="width:80px;background:var(--s2);border:1.5px solid transparent;border-radius:8px;padding:7px 10px;color:var(--t1);font-size:15px;font-weight:700;text-align:center;transition:border-color 0.15s" onfocus="this.style.borderColor='var(--a)'" onblur="this.style.borderColor='transparent'" oninput="recalcAI(${i})">
+        <span style="font-size:13px;color:var(--t3);font-weight:500">g</span>
+        <button onclick="removeAI(${i})" style="margin-left:auto;color:var(--red);font-size:12px;padding:5px 10px;background:rgba(255,69,58,0.1);border-radius:8px;font-weight:600">✕ Quitar</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        <div style="background:rgba(48,209,88,0.08);border-radius:10px;padding:8px;text-align:center"><div class="label" style="margin-bottom:3px">PROT</div><div style="font-weight:700;font-size:14px;color:var(--green)" id="ai-p-${i}">${+(f.protein_g||0).toFixed(1)}g</div></div>
+        <div style="background:rgba(10,132,255,0.08);border-radius:10px;padding:8px;text-align:center"><div class="label" style="margin-bottom:3px">CARBS</div><div style="font-weight:700;font-size:14px;color:var(--blue)" id="ai-c-${i}">${+(f.carbs_g||0).toFixed(1)}g</div></div>
+        <div style="background:rgba(255,159,10,0.08);border-radius:10px;padding:8px;text-align:center"><div class="label" style="margin-bottom:3px">GRASA</div><div style="font-weight:700;font-size:14px;color:var(--orange)" id="ai-f-${i}">${+(f.fat_g||0).toFixed(1)}g</div></div>
       </div>
     </div>`;
   }).join("");
   updAITotals();
-  if(data.tip){const t=document.getElementById("ai-tip");t.textContent="💡 "+data.tip;t.style.display="block";}
+  if(data.tip){const t=document.getElementById("ai-tip");t.innerHTML=`<span style="color:var(--a);font-weight:700">💡 </span>${data.tip}`;t.style.display="block";}
   document.getElementById("ai-rs").style.display="block";
 }
 
@@ -832,6 +880,36 @@ function removeAI(i){
   if(!S.aiD?.foods)return;
   S.aiD.foods.splice(i,1);
   rAI(S.aiD);
+}
+
+function scaleAll(factor){
+  if(!S.aiD?.foods)return;
+  S.aiD.foods.forEach((f,i)=>{
+    // Use base grams if stored, otherwise current
+    const baseG=f._baseGrams||f.grams||100;
+    const newG=Math.max(1,Math.round(baseG*factor));
+    // Reset base to original so scaling is always from original AI estimate
+    if(!f._origGrams){f._origGrams=f.grams||100;f._origCal=f.calories||0;f._origProt=f.protein_g||0;f._origCarb=f.carbs_g||0;f._origFat=f.fat_g||0;}
+    const ratio=newG/(f._origGrams||100);
+    f.grams=newG;
+    f.calories=Math.round((f._origCal||0)*ratio);
+    f.protein_g=+((f._origProt||0)*ratio).toFixed(1);
+    f.carbs_g=+((f._origCarb||0)*ratio).toFixed(1);
+    f.fat_g=+((f._origFat||0)*ratio).toFixed(1);
+    // Also reset _baseGrams so recalcAI works from new base
+    f._baseGrams=newG;f._baseCal=f.calories;f._baseProt=f.protein_g;f._baseCarb=f.carbs_g;f._baseFat=f.fat_g;
+    // Update input
+    const gEl=document.getElementById("ai-g-"+i);
+    if(gEl)gEl.value=newG;
+    const calEl=document.getElementById("ai-cal-"+i);
+    if(calEl)calEl.textContent=f.calories;
+    const pEl=document.getElementById("ai-p-"+i);if(pEl)pEl.textContent=f.protein_g+"g";
+    const cEl=document.getElementById("ai-c-"+i);if(cEl)cEl.textContent=f.carbs_g+"g";
+    const fEl=document.getElementById("ai-f-"+i);if(fEl)fEl.textContent=f.fat_g+"g";
+  });
+  updAITotals();
+  const labels={0.75:"−25% aplicado",1.0:"Porciones confirmadas ✓",1.25:"+25% aplicado"};
+  tst(labels[factor]||"Ajustado");
 }
 
 function updAITotals(){
