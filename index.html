@@ -702,32 +702,63 @@ async function doText(){const txt=document.getElementById("txt-i").value.trim();
 async function aiCallG(text,b64,mime){
   const isImg=!!b64;
   const m=mt(),tgt=m?.target||2000;
-  const prompt=isImg?`Eres un nutricionista experto analizando una imagen de comida. Identifica cada alimento visible y estima los gramos con realismo estricto.
+  const prompt=isImg?`Eres un nutricionista experto analizando una imagen de comida. Antes de estimar nada, DEBES hacer un análisis visual en este orden:
 
-NOMBRES: SIEMPRE en español (huevo duro, pechuga de pollo, arroz blanco, garbanzos cocidos, aguacate, queso feta, zanahoria rallada, tomate cherry, brócoli, pan de baguette, etc.)
+PASO 1 — IDENTIFICA EL RECIPIENTE:
+Observa el contenedor donde está la comida. Clasifícalo:
+- bowl grande (≥22cm): capacidad total ~800-1000g
+- bowl mediano (18-21cm): capacidad total ~500-700g
+- bowl pequeño/cuenco (≤17cm): capacidad total ~250-400g
+- plato hondo (sopa): capacidad total ~400-500g
+- plato llano grande (≥26cm): superficie grande, porciones se ven más planas y extendidas
+- plato llano normal (22-25cm): referencia estándar de restaurante
+- plato llano pequeño (≤21cm): tapa o entrante
+- plancha/bandeja: sin profundidad, todo visible y plano
+- tarrina/tupper: normalmente raciones exactas
+- sin recipiente visible (foto cenital sin borde claro): ser más conservador aún
+Estima el diámetro aproximado del recipiente en cm para usarlo como escala.
 
-VALORES NUTRICIONALES por 100g:
-Pechuga pollo plancha=165kcal P:31 C:0 G:3.6 | Muslo pollo=209 P:19 C:0 G:14 | Huevo duro=155 P:13 C:1.1 G:11 | Arroz blanco cocido=130 P:2.7 C:28 G:0.3 | Pasta cocida=131 P:5 C:25 G:1.1 | Pan baguette=275 P:9 C:55 G:2 | Patata cocida=77 P:2 C:17 G:0.1 | Salmón=208 P:20 C:0 G:13 | Atún lata=116 P:26 C:0 G:1 | Garbanzos cocidos=164 P:9 C:27 G:2.6 | Lentejas cocidas=116 P:9 C:20 G:0.4 | Aguacate=160 P:2 C:9 G:15 | Queso feta=264 P:14 C:4 G:21 | Queso manchego=392 P:27 C:0 G:32 | Tomate=18 P:0.9 C:3.9 G:0.2 | Tomate cherry=18 P:0.9 C:3.9 G:0.2 | Zanahoria=41 P:0.9 C:10 G:0.2 | Brócoli=34 P:2.8 C:7 G:0.4 | Espinacas=23 P:2.9 C:3.6 G:0.4 | Lechuga=15 P:1.4 C:2.9 G:0.2 | Pepino=16 P:0.7 C:3.6 G:0.1 | Cebolla=40 P:1.1 C:9.3 G:0.1 | Aceite oliva=884 P:0 C:0 G:100 (1 cucharada=10g) | Nueces=654 P:15 C:14 G:65 | Almendras=579 P:21 C:22 G:50
+PASO 2 — CUENTA Y MIDE CADA ALIMENTO INDIVIDUALMENTE:
+Para cada ingrediente, haz esto en orden:
 
-PESOS REALES — ESTO ES CRÍTICO:
-- Huevo mediano: 50g (huevo grande: 60g). NUNCA más de 60g por huevo.
-- Pechuga pollo en bowl/ensalada: 80-120g (no es un filete entero)
-- Arroz en bowl: 80-120g cocinado (no 200g, eso es un plato principal)
-- Pasta en bowl: 100-150g cocinada
-- Filete de carne/pollo completo en plato: 130-180g
-- Verduras (zanahoria, brócoli, espinaca) en bowl: 50-80g por tipo
-- Tomates cherry en ensalada: 60-80g (unos 6-8 tomates)
-- Aguacate en rodajas en bowl: 60-80g (medio aguacate)
-- Garbanzos/legumbres en bowl: 60-80g
-- Queso feta en dados: 30-50g
-- Pan: 1 rebanada=30g, 1 trozo baguette=40-60g
-- Fruta entera mediana: manzana=150g, plátano=100g, naranja=150g
+A) ¿Es contable? (granos sueltos, trozos, rodajas, unidades discretas) → CUENTA exactamente las unidades visibles.
+   Ejemplos de cómo aplicarlo:
+   - "Veo 4-5 granos de maíz sueltos" → ~8g (NO 50g solo porque el ingrediente es maíz)
+   - "Veo 3 rodajas de aguacate" → ~45g (NO 80g de medio aguacate)
+   - "Veo 6 tomates cherry" → ~50g
+   - "Veo 2 trozos de pollo" → ~80g
+   - "Veo 8-10 garbanzos visibles" → ~25g
+   Si son pocos granos/trozos sueltos → es decorativo/escaso → gramos bajos.
 
-REGLA TOTAL DEL PLATO: Si ves un bowl o plato con varios ingredientes, el total de todos los gramos NO debe superar 600-700g (un bowl normal pesa entre 400-650g con todo). Si tus estimaciones suman más, reduce proporcionalmente. Un plato de pasta solo puede llegar a 350-450g total.
+B) ¿Es amorfo? (arroz, pasta, hojas, salsa) → estima qué fracción del plato ocupa visualmente.
+   - Ocupa 1/8 del plato → capacidad_total ÷ 8
+   - Ocupa 1/4 del plato → capacidad_total ÷ 4
+   Si el arroz está en una esquina pequeña → 40-60g, NO 100g.
 
-REGLA MATEMÁTICA: calories = protein_g*4 + carbs_g*4 + fat_g*9 (±5% tolerancia). Verifica cada alimento.
+C) REGLA ANTI-GENEROSIDAD: Si dudas entre dos cantidades, elige siempre la menor. La IA tiende a sobreestimar. Sé conservador siempre.
 
-Responde SOLO JSON sin markdown: {"foods":[{"name":"nombre en español","grams":número,"calories":número,"protein_g":número,"carbs_g":número,"fat_g":número,"confidence":número_0_a_100}],"tip":"consejo nutricional breve en español"}
+PASO 3 — LÍMITE TOTAL POR RECIPIENTE:
+El total de gramos de todos los alimentos NO puede superar la capacidad estimada del recipiente:
+- bowl grande: máx 900g total
+- bowl mediano: máx 650g total  
+- bowl pequeño: máx 380g total
+- plato llano grande: máx 500g total (todo se ve más plano)
+- plato llano normal: máx 380g total
+- plancha/bandeja: máx 300g total
+Si la suma supera el límite, reduce proporcionalmente todos los ingredientes.
+
+PASO 4 — REFERENCIAS DE PESO VISUAL (usar como techo, no como base):
+Huevo mediano=50g, grande=60g (NUNCA más) | Pechuga plancha entera=130-170g, en trozos dentro de bowl=60-100g | Arroz cocido: una porción pequeña visible=40-70g, media=70-100g, grande=100-140g | Pasta cocida: pequeña=60-90g, media=90-130g | Aguacate medio=80g, rodajas visibles=40-70g | Legumbres (garbanzos, frijoles, lentejas) en bowl=50-80g | Verduras hoja (lechuga, espinaca)=15-30g | Verduras densas (brócoli, zanahoria, pimiento) por tipo=30-70g | Tomate cherry 6-8 uds=60-80g | Queso feta en dados=25-45g | Pan 1 rebanada=30g | Aceite (si se ve brillante/aderezo)=5-15g estimado
+
+PASO 5 — VALORES NUTRICIONALES por 100g:
+Pechuga pollo=165kcal P:31 C:0 G:3.6 | Muslo pollo=209 P:19 C:0 G:14 | Huevo=155 P:13 C:1.1 G:11 | Arroz blanco cocido=130 P:2.7 C:28 G:0.3 | Pasta cocida=131 P:5 C:25 G:1.1 | Pan baguette=275 P:9 C:55 G:2 | Patata cocida=77 P:2 C:17 G:0.1 | Boniato cocido=86 P:1.6 C:20 G:0.1 | Salmón=208 P:20 C:0 G:13 | Atún lata=116 P:26 C:0 G:1 | Garbanzos cocidos=164 P:9 C:27 G:2.6 | Frijoles/alubias cocidos=127 P:8.7 C:22 G:0.5 | Lentejas cocidas=116 P:9 C:20 G:0.4 | Aguacate=160 P:2 C:9 G:15 | Queso feta=264 P:14 C:4 G:21 | Queso manchego=392 P:27 C:0 G:32 | Tomate=18 P:0.9 C:3.9 G:0.2 | Tomate cherry=18 P:0.9 C:3.9 G:0.2 | Zanahoria=41 P:0.9 C:10 G:0.2 | Pimiento rojo=31 P:1 C:6 G:0.3 | Brócoli=34 P:2.8 C:7 G:0.4 | Espinacas=23 P:2.9 C:3.6 G:0.4 | Lechuga=15 P:1.4 C:2.9 G:0.2 | Pepino=16 P:0.7 C:3.6 G:0.1 | Maíz cocido=86 P:3.2 C:19 G:1.2 | Cebolla=40 P:1.1 C:9.3 G:0.1 | Aceite oliva=884 P:0 C:0 G:100 | Nueces=654 P:15 C:14 G:65 | Almendras=579 P:21 C:22 G:50
+
+REGLA MATEMÁTICA: calories = protein_g×4 + carbs_g×4 + fat_g×9 (±5% tolerancia). Verifica cada alimento.
+
+NOMBRES: SIEMPRE en español.
+
+Responde SOLO JSON sin markdown:
+{"container":"descripción del recipiente detectado (tipo, diámetro estimado, capacidad)","foods":[{"name":"nombre en español","visual_pct":número_porcentaje_espacio_que_ocupa,"grams":número,"calories":número,"protein_g":número,"carbs_g":número,"fat_g":número,"confidence":número_0_a_100}],"tip":"consejo nutricional breve en español"}
 Si no hay comida visible: {"error":"no_food"}`:`Eres nutricionista experto. El usuario describe: "${text}"
 
 NOMBRES: SIEMPRE en español.
@@ -810,7 +841,8 @@ function rAI(data){
   // Confidence badge with color
   const cfCol=avgC>=85?"var(--green)":avgC>=70?"var(--a)":"var(--orange)";
   const cfBg=avgC>=85?"rgba(48,209,88,0.12)":avgC>=70?"rgba(10,132,255,0.12)":"rgba(255,159,10,0.12)";
-  document.getElementById("ai-cf").innerHTML=`<span style="background:${cfBg};color:${cfCol};border-radius:99px;padding:4px 10px;font-size:12px;font-weight:700">Confianza ${avgC}%</span>`;
+  document.getElementById("ai-cf").innerHTML=`<span style="background:${cfBg};color:${cfCol};border-radius:99px;padding:4px 10px;font-size:12px;font-weight:700">Confianza ${avgC}%</span>`
+    +(data.container?`<div style="margin-top:8px;background:rgba(255,255,255,0.04);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:8px"><span style="font-size:15px">🍽️</span><span style="font-size:12px;color:var(--t2)">${data.container}</span></div>`:"");
   document.getElementById("ai-fl").innerHTML=foods.map((f,i)=>{
     const conf=f.confidence||0;
     const confCol=conf>=85?"var(--green)":conf>=70?"var(--a)":"var(--orange)";
