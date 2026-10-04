@@ -136,7 +136,7 @@ select.inp{-webkit-appearance:none;appearance:none;background-image:url("data:im
 #setup{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;flex-direction:column;padding:calc(var(--st)+28px) 20px calc(var(--sb)+24px);max-width:430px;margin:0 auto;overflow-y:auto;}
 .spin{width:34px;height:34px;border:2.5px solid var(--s3);border-top-color:var(--a);border-radius:50%;animation:sp 0.7s linear infinite;}
 @keyframes sp{to{transform:rotate(360deg);}}
-#toast{position:fixed;bottom:calc(115px + var(--sb));left:50%;transform:translateX(-50%) translateY(12px);background:rgba(44,44,46,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:var(--t1);padding:12px 22px;border-radius:99px;font-size:14px;font-weight:600;opacity:0;transition:all 0.22s;z-index:999;white-space:nowrap;pointer-events:none;box-shadow:0 4px 24px rgba(0,0,0,0.5);border:0.5px solid rgba(255,255,255,0.12);}
+#toast{position:fixed;bottom:calc(115px + var(--sb));left:50%;transform:translateX(-50%) translateY(12px);background:rgba(44,44,46,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:var(--t1);padding:12px 22px;border-radius:99px;font-size:14px;font-weight:600;opacity:0;transition:all 0.22s;z-index:999;white-space:normal;max-width:min(88vw,380px);text-align:center;border-radius:18px;pointer-events:none;box-shadow:0 4px 24px rgba(0,0,0,0.5);border:0.5px solid rgba(255,255,255,0.12);}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 .fa{animation:fadeUp 0.24s ease both;}
@@ -493,7 +493,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
 // ── AI API — proxy seguro via /api/ai (clave en Vercel, nunca en el HTML) ──
 async function callVision(b64,mime,prompt){
   const ctrl=new AbortController();
-  const tid=setTimeout(()=>ctrl.abort(),25000);
+  const tid=setTimeout(()=>ctrl.abort(),40000); // el servidor tiene hasta ~27 s
   try{
     const r=await fetch("/api/vision",{
       method:"POST",
@@ -715,9 +715,13 @@ async function onPh(ev){
     const cv=document.createElement("canvas");cv.width=w;cv.height=h;
     cv.getContext("2d").drawImage(img,0,0,w,h);
     const b64=cv.toDataURL("image/jpeg",q).split(",")[1];
-    await aiCallG(null,b64,"image/jpeg");
+    try{await aiCallG(null,b64,"image/jpeg");}
+    catch(e){console.error(e);document.getElementById("ai-ld").style.display="none";tst("Error cámara: "+String(e.message||e).slice(0,140));}
   };
+  // Si el navegador no puede leer la foto (p. ej. formato raro), antes se quedaba cargando para siempre.
+  img.onerror=()=>{document.getElementById("ai-ld").style.display="none";tst("No se pudo leer la foto. Prueba con otra.");};
   img.src=URL.createObjectURL(file);
+  ev.target.value=""; // permite volver a elegir la misma foto
 }
 async function doText(){const txt=document.getElementById("txt-i").value.trim();if(!txt){tst("Escribe qué has comido");return;}document.getElementById("ai-ld").style.display="flex";document.getElementById("ai-rs").style.display="none";await aiCallG(txt,null,null);}
 async function aiCallG(text,b64,mime){
@@ -794,10 +798,14 @@ REGLA MATEMÁTICA: calories = protein_g*4 + carbs_g*4 + fat_g*9. Verifica antes 
 
 Responde SOLO JSON sin markdown: {"foods":[{"name":"nombre en español","grams":número,"calories":número,"protein_g":número,"carbs_g":número,"fat_g":número,"confidence":número_0_a_100,"note":"cómo lo interpretaste"}],"tip":"consejo breve en español"}`;
   let raw;
-  if(isImg){
-    raw=await callVision(b64,mime,prompt);
-  } else {
-    raw=await callIA([{text:prompt}],1200);
+  // La llamada a la IA va dentro de try: si falla o tarda, se quita el "cargando" y se muestra el motivo.
+  try{
+    raw=isImg?await callVision(b64,mime,prompt):await callIA([{text:prompt}],1200);
+  }catch(e){
+    console.error(e);
+    document.getElementById("ai-ld").style.display="none";
+    tst("Error IA: "+String(e.message||e).slice(0,140));
+    return;
   }
   try{
     let parsed;
