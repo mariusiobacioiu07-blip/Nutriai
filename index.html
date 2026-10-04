@@ -210,7 +210,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
   </div>
   <div class="stats-grid">
     <div class="stat-cell"><div class="label" style="margin-bottom:2px">RESTANTES</div><div class="stat-val neon-text" id="h-rem">—</div><div style="font-size:10px;color:var(--t3)">kcal</div></div>
-    <div class="stat-cell"><div class="label" style="margin-bottom:2px">EJERCICIO</div><div class="stat-val" style="color:var(--purple)" id="h-ex">0</div><div style="font-size:10px;color:var(--t3)">quemadas</div></div>
+    <div class="stat-cell"><div class="label" style="margin-bottom:2px">EJERCICIO</div><div class="stat-val" style="color:var(--purple)" id="h-ex">0</div><div style="font-size:10px;color:var(--t3)">quemadas · cuentan 50 %</div></div>
     <div class="stat-cell"><div class="label" style="margin-bottom:2px">AGUA</div><div class="stat-val" style="color:var(--blue)" id="h-wat">0/8</div><div style="font-size:10px;color:var(--t3)">vasos</div></div>
   </div>
 </div>
@@ -603,30 +603,75 @@ function todayDayIdx(){const d=new Date().getDay();return d===0?6:d-1;}
 // Get daily activity level for a given day index (0=Mon to 6=Sun)
 function getDayAct(idx){const da=S.profile?.dayActivity||DEFAULT_DAY_ACT;return da[idx]||"moderate";}
 
+// ── PRECISIÓN DEL GASTO ──
+function bmrOf(p,w){w=w||p.weight;const b=10*w+6.25*p.height-5*p.age;return p.sex==="M"?b+5:b-161;}
+function avgMultOf(p){const da=p.dayActivity||DEFAULT_DAY_ACT;let t=0;for(let i=0;i<7;i++)t+=ACT_MULT[da[i]||"moderate"];return t/7;}
+function calib(){
+  const p=S.profile;if(!p||!p.weight||!p.height||!p.age)return null;
+  const wt=S.weights.slice(-60);
+  if(new Set(wt.map(x=>x.date)).size<3)return null;
+  const D=s=>new Date(s+"T12:00:00").getTime()/864e5;
+  const pts=wt.map(x=>({d:D(x.date),w:+x.w}));
+  const d0=Math.min(...pts.map(q=>q.d)),d1=Math.max(...pts.map(q=>q.d));
+  if(d1-d0<14)return null;
+  const n=pts.length,mx=pts.reduce((a,q)=>a+q.d,0)/n,my=pts.reduce((a,q)=>a+q.w,0)/n;
+  let sxy=0,sxx=0;pts.forEach(q=>{sxy+=(q.d-mx)*(q.w-my);sxx+=(q.d-mx)**2;});
+  if(!sxx)return null;
+  const slope=sxy/sxx;
+  const days=S.hist.filter(h=>h.date<td()&&D(h.date)>=d0&&D(h.date)<=d1&&h.cal>=800);
+  if(days.length<10)return null;
+  const intake=days.reduce((a,h)=>a+h.cal,0)/days.length;
+  const real=Math.round(intake-slope*7700);
+  const f=bmrOf(p)*avgMultOf(p);
+  if(real<f*0.6||real>f*1.4)return null;
+  return{real,w:Math.min(0.9,days.length/30),days:days.length};
+}
+function simDays(p,m){
+  const tw=+p.targetWeight;let w=+p.weight;if(!tw||!(w>tw))return null;
+  const k=m.tdee/(bmrOf(p,w)*avgMultOf(p));
+  for(let d=1;d<=1500;d++){const def=bmrOf(p,w)*avgMultOf(p)*k-m.target;if(def<50)return null;w-=def/7700;if(w<=tw)return d;}
+  return null;
+}
+function clrGoal(){if(S.profile)S.profile.calGoal=null;const e=document.getElementById("pf-cg");if(e)e.value="";}
+function sugTarget(){const m=mt(),p=S.profile;if(!m||!m.cal||p.goal!=="lose")return null;const t=Math.round(m.tdee-(p.customDef||550));return Math.abs(t-m.target)>=50?t:null;}
+function applySug(){const t=sugTarget();if(!t)return;S.profile.calGoal=t;sv();ldPf();uH();tst("✓ Objetivo ajustado a "+t+" kcal");}
+function calNote(){
+  const m=mt();if(!m)return"";
+  const pc=m.cal?6:10,lo=Math.round(m.tdee*(1-pc/100)),hi=Math.round(m.tdee*(1+pc/100));
+  let s=`<br><span style="font-size:12px;color:var(--t3)">Gasto semanal ≈ ${lo}–${hi} kcal (±${pc} %). `;
+  s+=m.cal?`Calibrado con ${m.cal.days} días: tu gasto real sale ≈ ${m.cal.real} kcal.`:`Para calibrarlo con tus datos: pésate en 3 días distintos durante 2 semanas y apunta tus comidas.`;
+  s+="</span>";
+  const t=sugTarget();
+  if(t)s+=`<br><button class="btn btn-secondary" style="margin-top:8px;font-size:13px;padding:10px" onclick="applySug()">Ajustar objetivo a ${t} kcal</button>`;
+  return s;
+}
+
 // Calculate weighted TDEE across the week
 function mt(){
   const p=S.profile;
   if(!p?.weight||!p?.height||!p?.age)return null;
-  const tmb=p.sex==="M"?88.36+13.4*p.weight+4.8*p.height-5.7*p.age:447.6+9.2*p.weight+3.1*p.height-4.3*p.age;
+  const tmb=bmrOf(p);
   
   // Weighted TDEE: average of all 7 days
   const da=p.dayActivity||DEFAULT_DAY_ACT;
   let totalMult=0;
   for(let i=0;i<7;i++) totalMult+=ACT_MULT[da[i]||"moderate"];
   const avgMult=totalMult/7;
-  const tdee=Math.round(tmb*avgMult);
+  const tdeeF=Math.round(tmb*avgMult);const cal=calib();const tdee=cal?Math.round(tdeeF*(1-cal.w)+cal.real*cal.w):tdeeF;
   
   // Today's TDEE
   const todayMult=ACT_MULT[getDayAct(todayDayIdx())];
-  const tdeToday=Math.round(tmb*todayMult);
+  const tdeToday=Math.round(tdee*todayMult/avgMult);
   
-  if(p.calGoal)return{tmb:Math.round(tmb),tdee,tdeToday,target:p.calGoal};
+  if(p.calGoal)return{tmb:Math.round(tmb),tdee,tdeToday,target:p.calGoal,cal};
   const def=p.customDef||({slow:275,moderate:550,fast:825,vfast:1100}[p.lossRate||"moderate"])||550;
   const adj=p.goal==="lose"?-def:p.goal==="gain"?300:0;
   const target=Math.round(Math.max(1000,tdee+adj));
-  return{tmb:Math.round(tmb),tdee,tdeToday,target};
+  return{tmb:Math.round(tmb),tdee,tdeToday,target,cal};
 }
 
+// Migración única: fija el objetivo que ya tenías (fórmula antigua) como objetivo manual
+(function(){const p=S.profile;if(!p)return;if(!p.mig2){if(p.weight&&p.height&&p.age&&!p.calGoal){const tmb=p.sex==="M"?88.36+13.4*p.weight+4.8*p.height-5.7*p.age:447.6+9.2*p.weight+3.1*p.height-4.3*p.age;const def=p.customDef||({slow:275,moderate:550,fast:825,vfast:1100}[p.lossRate||"moderate"])||550;const adj=p.goal==="lose"?-def:p.goal==="gain"?300:0;p.calGoal=Math.round(Math.max(1000,tmb*avgMultOf(p)+adj));}p.mig2=true;localStorage.setItem("nai5_p",JSON.stringify(p));}})();
 function strk(){let s=0,d=new Date();for(let i=0;i<365;i++){const k=dkey(d);const h=S.hist.find(x=>x.date===k);if(h&&h.cal>0)s++;else if(i>0)break;d.setDate(d.getDate()-1);}return s;}
 function greeting(){const h=new Date().getHours();return h<12?"BUENOS DÍAS":h<19?"BUENAS TARDES":"BUENAS NOCHES";}
 
@@ -657,7 +702,7 @@ function uH(){
   const ms=getMacroSplit();
   const pt=Math.round(tgt*ms.p/4),ct=Math.round(tgt*ms.c/4),ft=Math.round(tgt*ms.f/9);
   const exC=S.ex.reduce((a,e)=>a+e.cal,0);
-  const rem=tgt+exC-t.cal;
+  const rem=tgt+Math.round(exC*0.5)-t.cal;
   document.getElementById("h-greeting").textContent=greeting();
   document.getElementById("h-name").textContent=S.profile?.name||"Usuario";
   document.getElementById("h-str").textContent=strk()+"🔥";
@@ -1150,12 +1195,12 @@ async function wkSum(){const el=document.getElementById("wk-sum");el.innerHTML='
 Datos: Nombre:${S.profile?.name||"Usuario"}, Objetivo:${S.profile?.goal}, Objetivo calórico:${m?.target||2000} kcal/día, Promedio:${avg} kcal/día, Días registrados:${valid.length}/7, Proteína prom:${Math.round(valid.reduce((a,h)=>a+(h.p||0),0)/valid.length)}g/día`}],500);el.innerHTML=`<div style="font-size:13px;color:var(--t2);line-height:1.9">${text}</div>`;}catch(e){el.textContent="Error de conexión. Verifica tu internet.";}}
 
 // ── PROFILE ──
-function onSlider(val){const v=+val;document.getElementById("slider-val").textContent=v;document.getElementById("slider-loss").textContent=(v/7700*7).toFixed(2)+" kg/sem";document.getElementById("slider-note").textContent=v<300?"Ritmo muy suave, ideal para evitar el efecto rebote.":v<600?"Ritmo recomendado por la mayoría de nutricionistas.":v<900?"Ritmo exigente, requiere mucha disciplina.":"Ritmo agresivo. Solo con supervisión médica.";if(!S.profile)S.profile={};S.profile.customDef=v;document.querySelectorAll(".sfa").forEach(e=>e.classList.remove("on"));uMealHint();}
-function sfRate(val,el){document.querySelectorAll(".sfa").forEach(e=>e.classList.remove("on"));el.classList.add("on");if(!S.profile)S.profile={};S.profile.lossRate=val;const d={slow:275,moderate:550,fast:825,vfast:1100}[val]||550;S.profile.customDef=d;document.getElementById("def-slider").value=d;document.getElementById("slider-val").textContent=d;document.getElementById("slider-loss").textContent=(d/7700*7).toFixed(2)+" kg/sem";uMealHint();}
+function onSlider(val){const v=+val;document.getElementById("slider-val").textContent=v;document.getElementById("slider-loss").textContent=(v/7700*7).toFixed(2)+" kg/sem";document.getElementById("slider-note").textContent=v<300?"Ritmo muy suave, ideal para evitar el efecto rebote.":v<600?"Ritmo recomendado por la mayoría de nutricionistas.":v<900?"Ritmo exigente, requiere mucha disciplina.":"Ritmo agresivo. Solo con supervisión médica.";if(!S.profile)S.profile={};S.profile.customDef=v;clrGoal();document.querySelectorAll(".sfa").forEach(e=>e.classList.remove("on"));uMealHint();}
+function sfRate(val,el){document.querySelectorAll(".sfa").forEach(e=>e.classList.remove("on"));el.classList.add("on");if(!S.profile)S.profile={};S.profile.lossRate=val;const d={slow:275,moderate:550,fast:825,vfast:1100}[val]||550;S.profile.customDef=d;clrGoal();document.getElementById("def-slider").value=d;document.getElementById("slider-val").textContent=d;document.getElementById("slider-loss").textContent=(d/7700*7).toFixed(2)+" kg/sem";uMealHint();}
 function selG(val,el){document.querySelectorAll("[onclick^='selG']").forEach(o=>o.classList.remove("on"));el.classList.add("on");if(!S.profile)S.profile={};S.profile.goal=val;document.getElementById("loss-rate-sec").style.display=val==="lose"?"block":"none";uMealHint();}
 function selMacro(val,el){document.querySelectorAll(".smac").forEach(o=>o.classList.remove("on"));el.classList.add("on");if(!S.profile)S.profile={};S.profile.macroSplit=val;}
 function selMeals(n,btn){document.querySelectorAll("[id^='mf-']").forEach(b=>b.classList.remove("on"));btn.classList.add("on");if(!S.profile)S.profile={};S.profile.meals=n;uMealHint();}
-function uMealHint(){const m=mt();if(!m)return;const meals=S.profile?.meals||3,pm=Math.round(m.target/meals);const hint=document.getElementById("meal-cal-hint");if(hint)hint.textContent=`≈ ${pm} kcal por comida`;const dh=document.getElementById("date-hint");if(dh&&S.profile?.targetWeight&&S.profile?.weight&&m){const def=m.tdee-m.target;if(def>0){const diff=Math.abs(S.profile.weight-S.profile.targetWeight);const days=Math.round(diff*7700/def);const est=new Date();est.setDate(est.getDate()+days);dh.textContent=`A este ritmo: ${est.toLocaleDateString("es-ES",{day:"numeric",month:"long",year:"numeric"})} (${days} días)`;}}}
+function uMealHint(){const m=mt();if(!m)return;const meals=S.profile?.meals||3,pm=Math.round(m.target/meals);const hint=document.getElementById("meal-cal-hint");if(hint)hint.textContent=`≈ ${pm} kcal por comida`;const dh=document.getElementById("date-hint");if(dh&&S.profile?.targetWeight&&S.profile?.weight&&m){const def=m.tdee-m.target;if(def>0){const diff=Math.abs(S.profile.weight-S.profile.targetWeight);const days=simDays(S.profile,m)||Math.round(diff*7700/def);const est=new Date();est.setDate(est.getDate()+days);dh.textContent=`A este ritmo: ${est.toLocaleDateString("es-ES",{day:"numeric",month:"long",year:"numeric"})} (${days} días)`;}}}
 
 // ── DAY ACTIVITY GRID ──
 const DAY_OPTS=[
@@ -1203,7 +1248,7 @@ function setDayAct(idx,val){
 
 function updateDayTdeePreview(){
   const p=S.profile;if(!p?.weight||!p?.height||!p?.age)return;
-  const tmb=p.sex==="M"?88.36+13.4*p.weight+4.8*p.height-5.7*p.age:447.6+9.2*p.weight+3.1*p.height-4.3*p.age;
+  const tmb=bmrOf(p);
   const da=p.dayActivity||DEFAULT_DAY_ACT;
   let total=0;
   const preview=document.getElementById("day-tdee-preview");
@@ -1259,7 +1304,7 @@ function ldPf(){
     document.getElementById("p-def").textContent=diff>0?"−"+diff+" kcal":diff<0?"+"+Math.abs(diff)+" kcal":"0 kcal";
     const kpw=(diff*7/7700).toFixed(2);
     const meals=p.meals||3,pm=Math.round(m.target/meals);
-    document.getElementById("p-rate").innerHTML=`${diff>0?`Pérdida estimada: ≈ <strong style="color:var(--a)">${kpw} kg/semana</strong>.`:diff<0?`Ganancia estimada: ≈ <strong style="color:var(--a)">${Math.abs(kpw)} kg/semana</strong>.`:"Plan de mantenimiento."} ${pm} kcal × ${meals} comidas.`;
+    document.getElementById("p-rate").innerHTML=`${diff>0?`Pérdida estimada: ≈ <strong style="color:var(--a)">${kpw} kg/semana</strong>.`:diff<0?`Ganancia estimada: ≈ <strong style="color:var(--a)">${Math.abs(kpw)} kg/semana</strong>.`:"Plan de mantenimiento."} ${pm} kcal × ${meals} comidas.${calNote()}`;
   }
   uMealHint();
 }
