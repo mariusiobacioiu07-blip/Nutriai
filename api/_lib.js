@@ -86,24 +86,32 @@ async function generate(parts, { maxTokens = 1000, temperature = 0.3 } = {}) {
       }],
       // Los modelos Gemini recientes "piensan" y esos tokens cuentan dentro de maxOutputTokens.
       // Sin margen extra, la respuesta puede quedar cortada o vacía → sumamos holgura.
-      generationConfig: { maxOutputTokens: maxTokens + 4096, temperature },
+      // thinkingBudget:0 apaga el razonamiento (mucho más rápido, y la app ya pide el análisis paso a paso en el JSON).
+      // Si el modelo no lo admite devuelve 400 y el bucle de abajo reintenta sin este ajuste.
+      generationConfig: { maxOutputTokens: maxTokens + 4096, temperature, thinkingConfig: { thinkingBudget: 0 } },
     };
     // Modelo principal + reservas (si Google responde 503/429/500 por saturación, probamos el siguiente).
     const chain = [MODELS.gemini(), ...GEMINI_FALLBACKS()].filter((m, i, a) => m && a.indexOf(m) === i);
     const started = Date.now();
     let j, lastErr;
     for (let i = 0; i < chain.length; i++) {
-      if (Date.now() - started > 18_000) break; // Vercel corta a 30 s: no arrancamos intentos que no caben
+      const elapsed = Date.now() - started;
+      if (elapsed > 18_000) break; // Vercel corta a 30 s: no arrancamos intentos que no caben
       try {
         j = await postJSON(
           `https://generativelanguage.googleapis.com/v1beta/models/${chain[i]}:generateContent`,
           { "x-goog-api-key": key },
           body,
-          12_000
+          Math.max(5_000, Math.min(20_000, 27_000 - elapsed)) // foto + JSON largo puede tardar >12 s
         );
         break;
       } catch (e) {
         lastErr = e;
+        if (e.status === 400 && body.generationConfig.thinkingConfig) {
+          delete body.generationConfig.thinkingConfig; // este modelo no deja apagar el razonamiento
+          i--; // mismo modelo, sin ese ajuste
+          continue;
+        }
         const transient = e.name === "AbortError" || [429, 500, 503, 504].includes(e.status);
         const modelGone = e.status === 404 || e.status === 403; // retirado / no disponible para tu cuenta
         if (!transient && !modelGone) throw e; // 400 (petición mala), 401 (clave mala)… no se arregla cambiando de modelo
