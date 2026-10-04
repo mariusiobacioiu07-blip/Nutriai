@@ -2,13 +2,11 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover,maximum-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Nutri AI</title>
 <meta name="theme-color" content="#1c1c1e">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Nutri AI">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <link rel="icon" type="image/png" href="/icons/icon-192.png">
@@ -17,7 +15,6 @@
 // Service worker real (archivo /sw.js): permite instalar la app y abrirla sin conexión
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));}
 </script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#1c1c1e;--s1:#2c2c2e;--s2:#3a3a3c;--s3:#48484a;
@@ -53,7 +50,7 @@ input,textarea,select{font-family:var(--sans);outline:none;color:var(--t1);}
 .card-neon{background:var(--s1);border-radius:var(--r);padding:16px;position:relative;overflow:hidden;}
 .card-neon::before{content:'';position:absolute;inset:0;border-radius:var(--r);padding:0.5px;background:linear-gradient(135deg,rgba(255,255,255,0.1),rgba(255,255,255,0.02));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
 .card-inset{background:var(--s2);border-radius:12px;padding:14px;}
-.inp{background:var(--s2);border:none;border-radius:12px;padding:14px 16px;color:var(--t1);font-size:15px;width:100%;transition:box-shadow 0.2s;}
+.inp{background:var(--s2);border:none;border-radius:12px;padding:14px 16px;color:var(--t1);font-size:16px;width:100%;transition:box-shadow 0.2s;}
 .inp:focus{box-shadow:0 0 0 3px rgba(10,132,255,0.35);}
 .inp::placeholder{color:var(--t3);}
 textarea.inp{resize:none;line-height:1.6;}
@@ -150,6 +147,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
 /* Greeting label */
 #h-greeting{font-size:12px;font-weight:700;letter-spacing:0.08em;}
 
+.mic-w{position:relative;}
+.mic-w>textarea{padding-right:56px;}
+.mic{position:absolute;right:8px;bottom:8px;width:38px;height:38px;border-radius:50%;background:var(--s3);color:var(--t2);display:flex;align-items:center;justify-content:center;transition:background 0.15s,color 0.15s,transform 0.1s;}
+.mic:active{transform:scale(0.92);}
+.mic svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.mic.on{background:var(--red);color:#fff;animation:micp 1.1s ease-in-out infinite;}
+@keyframes micp{0%,100%{box-shadow:0 0 0 0 rgba(255,69,58,0.5);}50%{box-shadow:0 0 0 9px rgba(255,69,58,0);}}
 </style>
 </head>
 <body>
@@ -483,6 +487,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
   <div style="flex:1" id="s-con"></div>
   <div style="margin-top:24px"><button class="btn btn-neon" id="s-btn" onclick="sNext()">Continuar</button><button class="btn btn-ghost" id="s-skip" onclick="sSkip()" style="width:100%;text-align:center;margin-top:8px;display:none">Omitir este paso</button></div>
 </div>
+<!-- DIALOGO (sustituye a prompt/confirm) -->
+<div class="mo" id="m-dlg" style="z-index:300;align-items:center;padding:0 22px" onclick="if(event.target===this)dlgNo()"><div class="ms" style="border-radius:20px;max-width:340px;padding:22px 20px 18px">
+  <div id="dlg-t" style="font-size:18px;font-weight:700;letter-spacing:-0.3px;margin-bottom:6px"></div>
+  <div id="dlg-m" style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:14px"></div>
+  <input id="dlg-i" class="inp" type="text" style="display:none;margin-bottom:14px" onkeydown="if(event.key==='Enter'){event.preventDefault();dlgOk();}">
+  <div style="display:flex;gap:8px">
+    <button id="dlg-x" onclick="dlgNo()" class="btn btn-secondary btn-sm" style="flex:1;width:auto">Cancelar</button>
+    <button id="dlg-ok" onclick="dlgOk()" class="btn btn-primary btn-sm" style="flex:1;width:auto">Aceptar</button>
+  </div>
+</div></div>
 <!-- PORTION MODAL -->
 <div class="mo" id="m-por"><div class="ms"><div class="mh"></div><div style="font-size:48px;text-align:center;margin-bottom:8px" id="pm-e"></div><div style="font-size:22px;text-align:center;margin-bottom:4px;font-weight:700;letter-spacing:-0.3px" id="pm-n"></div><div style="text-align:center;color:var(--t2);font-size:12px;margin-bottom:20px" id="pm-b"></div><label class="inp-label">Cantidad en gramos</label><input type="number" id="pm-g" class="inp" value="100" min="1" oninput="cP()" style="margin-bottom:12px;font-size:22px;text-align:center;font-weight:700"><div id="pm-srv"></div><div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap"><button onclick="sP(25)" class="pill">25g</button><button onclick="sP(50)" class="pill">50g</button><button onclick="sP(100)" class="pill">100g</button><button onclick="sP(150)" class="pill">150g</button><button onclick="sP(200)" class="pill">200g</button><button onclick="sP(300)" class="pill">300g</button></div><div class="card" style="margin-bottom:16px;text-align:center;padding:20px;background:var(--s2)"><div class="label" style="margin-bottom:8px">CALORÍAS</div><div style="font-size:50px;font-weight:700;color:var(--a);line-height:1;letter-spacing:-1px" id="pm-k">0</div><div style="font-size:12px;color:var(--t2);margin-bottom:14px">kcal</div><div style="display:flex;justify-content:center;gap:24px"><div><div class="label" style="margin-bottom:3px">PROT</div><div style="font-weight:700;font-size:15px;color:var(--green)" id="pm-p">—</div></div><div><div class="label" style="margin-bottom:3px">CARBS</div><div style="font-weight:700;font-size:15px;color:var(--blue)" id="pm-c">—</div></div><div><div class="label" style="margin-bottom:3px">GRASA</div><div style="font-weight:700;font-size:15px;color:var(--orange)" id="pm-f">—</div></div><div><div class="label" style="margin-bottom:3px">FIBRA</div><div style="font-weight:700;font-size:15px;color:var(--purple)" id="pm-fi">—</div></div></div></div><button onclick="cnfP()" class="btn btn-neon" style="margin-bottom:8px">➕ Añadir al diario</button><button onclick="saveFavFood()" class="btn btn-secondary" style="margin-bottom:8px">⭐ Guardar como favorita</button><button onclick="cM('m-por')" class="btn btn-secondary">Cancelar</button></div></div>
 <!-- EDIT ENTRY MODAL -->
@@ -569,20 +583,28 @@ const td=()=>dkey(new Date());
 let curDay=td(); // día que tiene cargado la app ahora mismo
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const r1=n=>Math.round((+n||0)*10)/10;
+// Lectura segura de localStorage: un valor corrupto ya no deja la app en blanco
+function lsj(k,def){try{const v=localStorage.getItem(k);if(v===null)return def;const x=JSON.parse(v);return x==null?def:x;}catch(e){return def;}}
+function lsa(k){const x=lsj(k,[]);return Array.isArray(x)?x:[];}
+function lsn(k,def){try{const n=parseInt(localStorage.getItem(k)||"",10);return Number.isFinite(n)?n:(def||0);}catch(e){return def||0;}}
+// Sanea lo que devuelve la IA: nombre como texto y cifras como números
+const _nz=v=>{const n=parseFloat(v);return Number.isFinite(n)&&n>=0?n:0;};
+const normFood=f=>({...f,name:String((f&&f.name)||"Alimento").slice(0,80),grams:_nz(f?.grams),calories:Math.round(_nz(f?.calories)),protein_g:_nz(f?.protein_g),carbs_g:_nz(f?.carbs_g),fat_g:_nz(f?.fat_g)});
 let S={
-  profile:JSON.parse(localStorage.getItem("nai5_p")||"null"),
-  log:JSON.parse(localStorage.getItem("nai5_l_"+curDay)||"[]"),
-  hist:JSON.parse(localStorage.getItem("nai5_h")||"[]"),
-  water:parseInt(localStorage.getItem("nai5_w_"+curDay)||"0"),
-  ex:JSON.parse(localStorage.getItem("nai5_e_"+curDay)||"[]"),
-  fav:JSON.parse(localStorage.getItem("nai5_fav")||"[]"),
-  rec:JSON.parse(localStorage.getItem("nai5_rec")||"[]"),
-  weights:JSON.parse(localStorage.getItem("nai5_wt")||"[]"),
-  fast:JSON.parse(localStorage.getItem("nai5_fast")||"null"),
+  profile:(()=>{const x=lsj("nai5_p",null);return x&&typeof x==="object"&&!Array.isArray(x)?x:null;})(),
+  log:lsa("nai5_l_"+curDay),
+  hist:lsa("nai5_h"),
+  water:lsn("nai5_w_"+curDay,0),
+  ex:lsa("nai5_e_"+curDay),
+  fav:lsa("nai5_fav"),
+  rec:lsa("nai5_rec"),
+  weights:lsa("nai5_wt"),
+  fast:lsj("nai5_fast",null),
   cF:null,cEx:null,aiD:null,cat:"Todas"
 };
 
-function sv(){
+function sv(){try{svRaw();}catch(e){tst("No se pudo guardar: almacenamiento lleno");}}
+function svRaw(){
   const t=curDay;
   localStorage.setItem("nai5_l_"+t,JSON.stringify(S.log));
   if(S.profile)localStorage.setItem("nai5_p",JSON.stringify(S.profile));
@@ -593,7 +615,7 @@ function sv(){
   const tot=tots();
   S.hist=[...S.hist.filter(h=>h.date!==t),{date:t,cal:tot.cal,p:tot.p,c:tot.c,f:tot.f}].slice(-90);
   localStorage.setItem("nai5_h",JSON.stringify(S.hist));
-  try{const D=JSON.parse(localStorage.getItem("nai5_def")||"{}"),dd=dayDef(t);if(dd)D[t]={e:dd.e,g:dd.g};else delete D[t];localStorage.setItem("nai5_def",JSON.stringify(D));}catch(e){}
+  try{const D=lsj("nai5_def",{}),dd=dayDef(t);if(dd)D[t]={e:dd.e,g:dd.g};else delete D[t];localStorage.setItem("nai5_def",JSON.stringify(D));}catch(e){}
 }
 
 function tots(){return S.log.reduce((a,i)=>({cal:a.cal+i.cal,p:a.p+(i.p||0),c:a.c+(i.c||0),f:a.f+(i.f||0)}),{cal:0,p:0,c:0,f:0});}
@@ -635,7 +657,7 @@ function simDays(p,m){
   return null;
 }
 function clrGoal(){if(S.profile)S.profile.calGoal=null;const e=document.getElementById("pf-cg");if(e)e.value="";}
-function sugTarget(){const m=mt(),p=S.profile;if(!m||!m.cal||p.goal!=="lose")return null;const t=Math.round(m.tdee-(p.customDef||550));return Math.abs(t-m.target)>=50?t:null;}
+function sugTarget(){const m=mt(),p=S.profile;if(!m||!m.cal||p.goal!=="lose")return null;const t=Math.max(calFloor(p),Math.round(m.tdee-(p.customDef||550)));return Math.abs(t-m.target)>=50?t:null;}
 function applySug(){const t=sugTarget();if(!t)return;S.profile.calGoal=t;sv();ldPf();uH();tst("✓ Objetivo ajustado a "+t+" kcal");}
 function calNote(){
   const m=mt();if(!m)return"";
@@ -643,12 +665,14 @@ function calNote(){
   let s=`<br><span style="font-size:12px;color:var(--t3)">Gasto semanal ≈ ${lo}–${hi} kcal (±${pc} %). `;
   s+=m.cal?`Calibrado con ${m.cal.days} días: tu gasto real sale ≈ ${m.cal.real} kcal.`:`Para calibrarlo con tus datos: pésate en 3 días distintos durante 2 semanas y apunta tus comidas.`;
   s+="</span>";
+  if(m.floored)s+=`<br><span style="font-size:12px;color:var(--orange)">⚠️ Con el déficit elegido saldrían menos de ${m.floored} kcal/día, así que el objetivo se limita a ese mínimo.</span>`;
   const t=sugTarget();
   if(t)s+=`<br><button class="btn btn-secondary" style="margin-top:8px;font-size:13px;padding:10px" onclick="applySug()">Ajustar objetivo a ${t} kcal</button>`;
   return s;
 }
 
 // Calculate weighted TDEE across the week
+const calFloor=p=>p&&p.sex==="M"?1500:1200; // mínimo orientativo (kcal/día)
 function mt(){
   const p=S.profile;
   if(!p?.weight||!p?.height||!p?.age)return null;
@@ -668,8 +692,8 @@ function mt(){
   if(p.calGoal)return{tmb:Math.round(tmb),tdee,tdeToday,target:p.calGoal,cal};
   const def=p.customDef||({slow:275,moderate:550,fast:825,vfast:1100}[p.lossRate||"moderate"])||550;
   const adj=p.goal==="lose"?-def:p.goal==="gain"?300:0;
-  const target=Math.round(Math.max(1000,tdee+adj));
-  return{tmb:Math.round(tmb),tdee,tdeToday,target,cal};
+  const fl=calFloor(p),rawT=Math.round(tdee+adj),target=Math.max(fl,rawT);
+  return{tmb:Math.round(tmb),tdee,tdeToday,target,cal,floored:rawT<fl?fl:0};
 }
 
 // Migración única: fija el objetivo que ya tenías (fórmula antigua) como objetivo manual
@@ -690,13 +714,13 @@ function rS(){const step=STEPS[ss],N=STEPS.length;document.getElementById("s-dot
 function sfG(el){document.querySelectorAll(".sfg").forEach(e=>e.classList.remove("on"));el.classList.add("on");sf.goal=el.dataset.v;}
 function sfB(el){document.querySelectorAll(".sfb").forEach(e=>e.classList.remove("on"));el.classList.add("on");sf.activity=el.dataset.v;}
 function sSkip(){ss++;rS();}
-function sNext(){if(ss===0){const n=document.getElementById("sf-nm")?.value.trim();if(!n){tst("Escribe tu nombre");return;}sf.name=n;}else if(ss===1){const a=+document.getElementById("sf-ag")?.value,h=+document.getElementById("sf-ht")?.value,w=+document.getElementById("sf-wt")?.value;if(!a||!h||!w){tst("Completa todos los campos");return;}sf.age=a;sf.sex=document.getElementById("sf-sx")?.value||"M";sf.height=h;sf.weight=w;sf.targetWeight=+document.getElementById("sf-tw")?.value||w;}else if(ss===2){if(!sf.goal){tst("Selecciona un objetivo");return;}}else if(ss===3){if(!sf.activity)sf.activity="moderate";
+async function sNext(){if(ss===0){const n=document.getElementById("sf-nm")?.value.trim();if(!n){tst("Escribe tu nombre");return;}sf.name=n;}else if(ss===1){const a=+document.getElementById("sf-ag")?.value,h=+document.getElementById("sf-ht")?.value,w=+document.getElementById("sf-wt")?.value;if(!a||!h||!w){tst("Completa todos los campos");return;}{const tw0=+document.getElementById("sf-tw")?.value||w,b0=tw0/((h/100)**2);if(tw0<w&&b0<18.5&&!(await uiConfirm("Peso objetivo bajo","Con "+tw0+" kg tu IMC sería "+b0.toFixed(1).replace(".",",")+", por debajo de 18,5 (bajo peso). ¿Seguro que quieres ese objetivo?",{ok:"Mantenerlo"})))return;}sf.age=a;sf.sex=document.getElementById("sf-sx")?.value||"M";sf.height=h;sf.weight=w;sf.targetWeight=+document.getElementById("sf-tw")?.value||w;}else if(ss===2){if(!sf.goal){tst("Selecciona un objetivo");return;}}else if(ss===3){if(!sf.activity)sf.activity="moderate";
   // Build default day activity from wizard choice
   const da={};for(let i=0;i<7;i++)da[i]=i<5?sf.activity:"sedentary";
   S.profile={...sf,dayActivity:da,setup:true};sv();document.getElementById("setup").style.display="none";ldPf();uH();return;}if(ss===2&&sf.goal!=="lose"){ss=3;rS();return;}ss++;rS();}
 
 // ── NAVIGATION ──
-function gP(id,btn){stopScan();document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.querySelectorAll(".nb").forEach(b=>b.classList.remove("active"));document.getElementById("page-"+id).classList.add("active");if(btn)btn.classList.add("active");if(id==="home")uH();if(id==="search")rF();if(id==="progress")uPr();if(id==="more")rMore();if(id==="profile")ldPf();}
+function gP(id,btn){micStop();stopScan();document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.querySelectorAll(".nb").forEach(b=>b.classList.remove("active"));document.getElementById("page-"+id).classList.add("active");if(btn)btn.classList.add("active");if(id==="home")uH();if(id==="search")rF();if(id==="progress")uPr();if(id==="more")rMore();if(id==="profile")ldPf();}
 
 // ── HOME ──
 function uH(){
@@ -736,12 +760,12 @@ function uH(){
 function rLog(){const el=document.getElementById("log-list");document.getElementById("log-cnt").textContent=S.log.length+(S.log.length===1?" entrada":" entradas");const rb=document.getElementById("rep-btn");if(rb)rb.style.display=yLog().length?"inline-block":"none";if(!S.log.length){el.innerHTML='<div style="text-align:center;padding:44px 20px 36px"><div style="font-size:52px;margin-bottom:14px;opacity:0.12">🍽️</div><div style="font-size:16px;color:var(--t1);font-weight:700;margin-bottom:6px">Nada registrado hoy</div><div style="font-size:13px;color:var(--t3);line-height:1.7">Describe lo que comiste arriba<br>o usa la cámara IA</div></div>';return;}el.innerHTML=S.log.map((x,i)=>`<div class="fr fa" onclick="oEdit(${i})" style="animation-delay:${i*.04}s"><div class="fe">${esc(x.e)}</div><div class="fi"><div class="fn">${esc(x.n)}</div><div class="fm">${x.g||'—'}g · P:${x.p||0}g · C:${x.c||0}g · G:${x.f||0}g</div></div><div class="fc"><div class="fk">${x.cal}</div><div class="fu">kcal</div></div><button onclick="event.stopPropagation();rmF(${i})" style="color:var(--t3);font-size:16px;padding:8px;flex-shrink:0">✕</button></div>`).join("")+'<div style="font-size:11px;color:var(--t3);text-align:center;margin:8px 0 14px">Toca una comida para corregir los gramos</div>';}
 function rWat(){const goal=S.profile?.waterGoal||8;document.getElementById("wat-drops").innerHTML=Array.from({length:Math.min(goal,12)},(_,i)=>`<div class="drop ${i<S.water?"on":"off"}" onclick="addW()">${i<S.water?"💧":"○"}</div>`).join("");document.getElementById("wat-lbl").textContent=S.water+"/"+goal;const el=document.getElementById("h-wat");if(el)el.textContent=S.water+"/"+goal;}
 function addW(){const goal=S.profile?.waterGoal||8;if(S.water>=goal){tst("¡Objetivo de agua alcanzado! 💧");return;}S.water++;sv();rWat();tst("💧 Vaso registrado");}
-function rmF(i){S.log.splice(i,1);sv();uH();}
+function rmF(i){const x=S.log[i];if(!x)return;const day=curDay;S.log.splice(i,1);sv();uH();tstUndo("Eliminado: "+x.n,()=>{if(day!==curDay)return;S.log.splice(Math.min(i,S.log.length),0,x);sv();uH();});}
 function qAdd(e,n,cal,p,c,f,g){S.log.push({e,n,cal:Math.round(cal*g/100),p:Math.round(p*g/100*10)/10,c:Math.round(c*g/100*10)/10,f:Math.round(f*g/100*10)/10,g});noteRecent(S.log.slice(-1));sv();uH();tst("✓ "+n+" añadido");}
 
 // ── QUICK ADD ──
-function qaTab(t){["txt","quick","bar"].forEach((k,i)=>{const on=i===t;document.getElementById("qa-"+k+"-panel").style.display=on?"block":"none";document.getElementById("qa-tab-"+k).style.cssText="padding:7px 11px;border-radius:8px;font-size:12px;font-weight:600;"+(on?"background:var(--s3);color:var(--t1)":"color:var(--t3)");});if(t!==2)stopScan();}
-async function qaAnalyze(){const txt=document.getElementById("qa-txt").value.trim();if(!txt){tst("Describe qué has comido");return;}const btn=document.getElementById("qa-btn"),btnT=document.getElementById("qa-btn-txt");btn.disabled=true;btnT.textContent="Analizando con IA...";document.getElementById("qa-result").style.display="none";try{const raw=await callIA([{text:`Eres un nutricionista experto. Analiza: "${txt}"
+function qaTab(t){micStop();["txt","quick","bar"].forEach((k,i)=>{const on=i===t;document.getElementById("qa-"+k+"-panel").style.display=on?"block":"none";document.getElementById("qa-tab-"+k).style.cssText="padding:7px 11px;border-radius:8px;font-size:12px;font-weight:600;"+(on?"background:var(--s3);color:var(--t1)":"color:var(--t3)");});if(t!==2)stopScan();}
+async function qaAnalyze(){micStop();const txt=document.getElementById("qa-txt").value.trim();if(!txt){tst("Describe qué has comido");return;}const btn=document.getElementById("qa-btn"),btnT=document.getElementById("qa-btn-txt");btn.disabled=true;btnT.textContent="Analizando con IA...";document.getElementById("qa-result").style.display="none";try{const raw=await callIA([{text:`Eres un nutricionista experto. Analiza: "${txt}"
 
 TABLA DE REFERENCIA por 100g:
 Pollo pechuga plancha=165kcal P:31 C:0 G:3.6 | Pollo muslo=209 P:26 C:0 G:11 | Huevo entero=155 P:13 C:1 G:11 | Huevo mediano pesa 50g
@@ -765,11 +789,11 @@ REGLAS:
 - Frito en aceite: añade 50-80kcal extra
 - Si dice "2 huevos" = 2x50g=100g, calories=155
 
-Responde SOLO JSON sin markdown: {"foods":[{"name":"nombre español","grams":número,"calories":número,"protein_g":número,"carbs_g":número,"fat_g":número}]}`}]);const clean=raw.replace(/\`\`\`json|\`\`\`/g,"").trim();const parsed=JSON.parse(clean);const foods=parsed.foods||[];if(!foods.length){tst("No entendí el alimento. Sé más específico.");btn.disabled=false;btnT.textContent="✦ Calcular calorías con IA";return;}const tc=foods.reduce((a,f)=>a+(+f.calories||0),0),tp=foods.reduce((a,f)=>a+(+f.protein_g||0),0),tca=foods.reduce((a,f)=>a+(+f.carbs_g||0),0),tf=foods.reduce((a,f)=>a+(+f.fat_g||0),0);const res=document.getElementById("qa-result");res.style.display="block";res.innerHTML=`<div style="background:var(--s2);border-radius:16px;padding:14px">${foods.map(f=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--br)"><div><div style="font-weight:600;font-size:14px">${f.name}</div><div style="font-size:12px;color:var(--t2);margin-top:2px">≈${f.grams||0}g · P:${+(f.protein_g||0).toFixed(1)}g · C:${+(f.carbs_g||0).toFixed(1)}g · G:${+(f.fat_g||0).toFixed(1)}g</div></div><div style="font-size:18px;font-weight:700;color:var(--a)">${f.calories}</div></div>`).join("")}<div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px"><div style="font-weight:600;font-size:15px">Total</div><div style="font-size:22px;font-weight:700;color:var(--a)">${tc} <span style="font-size:13px;color:var(--t2)">kcal</span></div></div><div style="display:flex;gap:8px;margin-top:10px"><div style="flex:1;background:rgba(48,209,88,0.08);border-radius:10px;padding:8px;text-align:center"><div class="label" style="margin-bottom:2px">PROT</div><div style="font-weight:700;font-size:14px;color:var(--green)">${Math.round(tp)}g</div></div><div style="flex:1;background:rgba(10,132,255,0.08);border-radius:10px;padding:8px;text-align:center"><div class="label" style="margin-bottom:2px">CARBS</div><div style="font-weight:700;font-size:14px;color:var(--blue)">${Math.round(tca)}g</div></div><div style="flex:1;background:rgba(255,159,10,0.08);border-radius:10px;padding:8px;text-align:center"><div class="label" style="margin-bottom:2px">GRASA</div><div style="font-weight:700;font-size:14px;color:var(--orange)">${Math.round(tf)}g</div></div></div><button onclick="qaAdd()" class="btn btn-neon" style="margin-top:12px;font-size:14px;padding:13px">➕ Añadir al diario</button><button onclick="saveFavQA()" class="btn btn-secondary" style="margin-top:8px;font-size:14px;padding:13px">⭐ Guardar como favorita</button></div>`;window._qaFoods=foods;}catch(e){console.error(e);tst("Error IA: "+e.message);}btn.disabled=false;btnT.textContent="✦ Calcular calorías con IA";}
+Responde SOLO JSON sin markdown: {"foods":[{"name":"nombre español","grams":número,"calories":número,"protein_g":número,"carbs_g":número,"fat_g":número}]}`}]);const clean=raw.replace(/\`\`\`json|\`\`\`/g,"").trim();const parsed=JSON.parse(clean);const foods=(Array.isArray(parsed.foods)?parsed.foods:[]).map(normFood);if(!foods.length){tst("No entendí el alimento. Sé más específico.");btn.disabled=false;btnT.textContent="✦ Calcular calorías con IA";return;}const tc=foods.reduce((a,f)=>a+(+f.calories||0),0),tp=foods.reduce((a,f)=>a+(+f.protein_g||0),0),tca=foods.reduce((a,f)=>a+(+f.carbs_g||0),0),tf=foods.reduce((a,f)=>a+(+f.fat_g||0),0);const res=document.getElementById("qa-result");res.style.display="block";res.innerHTML=`<div style="background:var(--s2);border-radius:16px;padding:14px">${foods.map(f=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--br)"><div><div style="font-weight:600;font-size:14px">${esc(f.name)}</div><div style="font-size:12px;color:var(--t2);margin-top:2px">≈${f.grams||0}g · P:${+(f.protein_g||0).toFixed(1)}g · C:${+(f.carbs_g||0).toFixed(1)}g · G:${+(f.fat_g||0).toFixed(1)}g</div></div><div style="font-size:18px;font-weight:700;color:var(--a)">${f.calories}</div></div>`).join("")}<div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px"><div style="font-weight:600;font-size:15px">Total</div><div style="font-size:22px;font-weight:700;color:var(--a)">${tc} <span style="font-size:13px;color:var(--t2)">kcal</span></div></div><div style="display:flex;gap:8px;margin-top:10px"><div style="flex:1;background:rgba(48,209,88,0.08);border-radius:10px;padding:8px;text-align:center"><div class="label" style="margin-bottom:2px">PROT</div><div style="font-weight:700;font-size:14px;color:var(--green)">${Math.round(tp)}g</div></div><div style="flex:1;background:rgba(10,132,255,0.08);border-radius:10px;padding:8px;text-align:center"><div class="label" style="margin-bottom:2px">CARBS</div><div style="font-weight:700;font-size:14px;color:var(--blue)">${Math.round(tca)}g</div></div><div style="flex:1;background:rgba(255,159,10,0.08);border-radius:10px;padding:8px;text-align:center"><div class="label" style="margin-bottom:2px">GRASA</div><div style="font-weight:700;font-size:14px;color:var(--orange)">${Math.round(tf)}g</div></div></div><button onclick="qaAdd()" class="btn btn-neon" style="margin-top:12px;font-size:14px;padding:13px">➕ Añadir al diario</button><button onclick="saveFavQA()" class="btn btn-secondary" style="margin-top:8px;font-size:14px;padding:13px">⭐ Guardar como favorita</button></div>`;window._qaFoods=foods;}catch(e){console.error(e);tst("Error IA: "+e.message);}btn.disabled=false;btnT.textContent="✦ Calcular calorías con IA";}
 function qaAdd(){const f=window._qaFoods;if(!f)return;f.forEach(food=>S.log.push({e:"🤖",n:food.name,g:food.grams,cal:food.calories,p:food.protein_g,c:food.carbs_g,f:food.fat_g}));noteRecent(S.log.slice(-f.length));sv();uH();document.getElementById("qa-txt").value="";document.getElementById("qa-result").style.display="none";window._qaFoods=null;tst("✓ Añadido al diario");}
 
 // ── CAMERA / AI ANALYSIS ──
-function camTab(t){const p=t===0;document.getElementById("cam-pu").style.display=p?"block":"none";document.getElementById("cam-tu").style.display=p?"none":"block";const tp=document.getElementById("tab-p"),tt=document.getElementById("tab-t");if(p){tp.style.cssText="flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:600;background:var(--s3);color:var(--t1);";tt.style.cssText="flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:600;color:var(--t3);";}else{tt.style.cssText="flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:600;background:var(--s3);color:var(--t1);";tp.style.cssText="flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:600;color:var(--t3);";}document.getElementById("ai-rs").style.display="none";document.getElementById("ai-ld").style.display="none";}
+function camTab(t){micStop();const p=t===0;document.getElementById("cam-pu").style.display=p?"block":"none";document.getElementById("cam-tu").style.display=p?"none":"block";const tp=document.getElementById("tab-p"),tt=document.getElementById("tab-t");if(p){tp.style.cssText="flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:600;background:var(--s3);color:var(--t1);";tt.style.cssText="flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:600;color:var(--t3);";}else{tt.style.cssText="flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:600;background:var(--s3);color:var(--t1);";tp.style.cssText="flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:600;color:var(--t3);";}document.getElementById("ai-rs").style.display="none";document.getElementById("ai-ld").style.display="none";}
 function resetCam(){document.getElementById("ai-rs").style.display="none";document.getElementById("cam-pv").style.display="none";document.getElementById("cam-ph").style.display="flex";document.getElementById("cam-i").value="";document.getElementById("gal-i").value="";document.getElementById("txt-i").value="";S.aiD=null;const t=document.getElementById("ai-tip");t.style.display="none";t.textContent="";}
 async function onPh(ev){
   const file=ev.target.files[0];if(!file)return;
@@ -795,7 +819,7 @@ async function onPh(ev){
   img.src=URL.createObjectURL(file);
   ev.target.value=""; // permite volver a elegir la misma foto
 }
-async function doText(){const txt=document.getElementById("txt-i").value.trim();if(!txt){tst("Escribe qué has comido");return;}document.getElementById("ai-ld").style.display="flex";document.getElementById("ai-rs").style.display="none";await aiCallG(txt,null,null);}
+async function doText(){micStop();const txt=document.getElementById("txt-i").value.trim();if(!txt){tst("Escribe qué has comido");return;}document.getElementById("ai-ld").style.display="flex";document.getElementById("ai-rs").style.display="none";await aiCallG(txt,null,null);}
 async function aiCallG(text,b64,mime){
   const isImg=!!b64;
   const m=mt(),tgt=m?.target||2000;
@@ -919,6 +943,7 @@ Responde SOLO JSON sin markdown: {"foods":[{"name":"nombre en español","grams":
     }
     document.getElementById("ai-ld").style.display="none";
     if(parsed.error){tst("No detecté comida en la imagen.");return;}
+    if(Array.isArray(parsed.foods))parsed.foods=parsed.foods.map(normFood);
     S.aiD=parsed;
     rAI(parsed);
     // Auto diet check after analysis
@@ -962,7 +987,7 @@ function rAI(data){
     return `<div class="card" id="ai-card-${i}" style="margin-bottom:10px;animation:fadeUp 0.24s ease ${i*.05}s both">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div style="flex:1;min-width:0">
-          <input id="ai-name-${i}" value="${f.name}" style="font-weight:700;font-size:15px;background:transparent;border:none;border-bottom:1.5px solid var(--s3);color:var(--t1);width:100%;padding-bottom:3px;outline:none" onfocus="this.style.borderBottomColor='var(--a)'" onblur="this.style.borderBottomColor='var(--s3)';recalcAI(${i})">
+          <input id="ai-name-${i}" value="${esc(f.name)}" style="font-weight:700;font-size:15px;background:transparent;border:none;border-bottom:1.5px solid var(--s3);color:var(--t1);width:100%;padding-bottom:3px;outline:none" onfocus="this.style.borderBottomColor='var(--a)'" onblur="this.style.borderBottomColor='var(--s3)';recalcAI(${i})">
           <div style="font-size:11px;color:var(--t3);margin-top:4px">toca nombre o gramos para editar</div>
         </div>
         <div style="text-align:right;margin-left:12px;flex-shrink:0">
@@ -994,7 +1019,7 @@ function rAI(data){
     </div>`;
   }).join("");
   updAITotals();
-  if(data.tip){const t=document.getElementById("ai-tip");t.innerHTML=`<span style="color:var(--a);font-weight:700">💡 </span>${data.tip}`;t.style.display="block";}
+  if(data.tip){const t=document.getElementById("ai-tip");t.innerHTML=`<span style="color:var(--a);font-weight:700">💡 </span>${esc(data.tip)}`;t.style.display="block";}
   document.getElementById("ai-rs").style.display="block";
 }
 
@@ -1089,7 +1114,7 @@ let chRange=7,chSelK=null;
 function dayDef(k){
   const m=mt();if(!m)return null;
   if(k===curDay){const t=tots();if(!(t.cal>0))return null;const g=m.tdeToday+Math.round(S.ex.reduce((a,x)=>a+x.cal,0)*0.5),e=Math.round(t.cal);return{e,g,d:g-e};}
-  let D={};try{D=JSON.parse(localStorage.getItem("nai5_def")||"{}");}catch(e){}
+  let D={};try{D=lsj("nai5_def",{});}catch(e){}
   if(D[k])return{e:D[k].e,g:D[k].g,d:D[k].g-D[k].e};
   const h=S.hist.find(x=>x.date===k);if(!h||!(h.cal>0))return null;
   const idx=(new Date(k+"T12:00:00").getDay()+6)%7;let ex=[];try{ex=JSON.parse(localStorage.getItem("nai5_e_"+k)||"[]");}catch(e){}
@@ -1097,7 +1122,7 @@ function dayDef(k){
   return{e:h.cal,g,d:g-h.cal};
 }
 function defTotal(){
-  let D={};try{D=JSON.parse(localStorage.getItem("nai5_def")||"{}");}catch(e){}
+  let D={};try{D=lsj("nai5_def",{});}catch(e){}
   const ks=new Set([...Object.keys(D),...S.hist.filter(h=>h.cal>0).map(h=>h.date),curDay]);
   let tot=0,n=0,first=null;
   ks.forEach(k=>{const r=dayDef(k);if(r){tot+=r.d;n++;if(!first||k<first)first=k;}});
@@ -1155,6 +1180,7 @@ function rMore(){
 
 // ── NEW: DIET ADVISOR ──
 async function checkDiet(){
+  micStop();
   const q=document.getElementById("diet-q").value.trim();
   if(!q){tst("Escribe qué quieres consultar");return;}
   const btn=document.getElementById("diet-btn"),btnT=document.getElementById("diet-btn-txt");
@@ -1173,13 +1199,14 @@ Da una respuesta directa, honesta y útil en español. Incluye:
 Sé directo y sin rodeos. Máximo 5 frases. Usa algún emoji.`}],600);
     const el=document.getElementById("diet-result");
     el.style.display="block";
-    el.innerHTML=`<div class="ai-bubble" style="border-radius:16px;">${raw.replace(/\n/g,"<br>")}</div>`;
+    el.innerHTML=`<div class="ai-bubble" style="border-radius:16px;">${esc(raw).replace(/\n/g,"<br>")}</div>`;
   }catch(e){tst("Error: "+e.message);}
   btn.disabled=false;btnT.textContent="✦ Consultar con IA";
 }
 
 // ── NEW: RECIPE FROM INGREDIENTS ──
 async function genRecipe(){
+  micStop();
   const q=document.getElementById("ing-q").value.trim();
   if(!q){tst("Escribe los ingredientes que tienes");return;}
   const btn=document.getElementById("rec-btn"),btnT=document.getElementById("rec-btn-txt");
@@ -1216,7 +1243,7 @@ Sé práctico y usa SOLO los ingredientes que mencionó (puedes añadir sal, ace
     const lines=raw.split("\n").filter(l=>l.trim());
     let html='<div style="background:var(--s2);border-radius:16px;padding:16px">';
     for(const line of lines){
-      const l=line.trim();
+      const l=esc(line.trim());
       if(l.startsWith("🍽️")){html+=`<div style="font-size:17px;font-weight:700;margin-bottom:10px;color:var(--t1)">${l}</div>`;}
       else if(l.startsWith("⏱️")||l.startsWith("🔥")||l.startsWith("💪")){html+=`<div style="font-size:13px;color:var(--t2);margin-bottom:4px">${l}</div>`;}
       else if(l.startsWith("📋")){html+=`<div style="font-size:12px;font-weight:700;color:var(--a);letter-spacing:0.06em;text-transform:uppercase;margin:14px 0 8px">${l}</div>`;}
@@ -1241,10 +1268,10 @@ function oRec(i){const r=RECS[i];document.getElementById("rm-e").textContent=r.e
 // ── FASTING ──
 let fastTimer=null;
 function rFast(){const el=document.getElementById("fast-ui");if(!S.fast?.start){el.innerHTML='<div style="font-size:13px;color:var(--t2);margin-bottom:12px">Registra tu ventana de ayuno intermitente.</div><button onclick="startFast()" class="btn btn-secondary btn-sm" style="width:auto;display:inline-block;padding:10px 18px;color:var(--a)">▶ Iniciar ayuno</button>';return;}const elapsed=Date.now()-S.fast.start,goal=S.fast.goal*3600000,pct=Math.min(elapsed/goal,1);const h=Math.floor(elapsed/3600000),mins=Math.floor((elapsed%3600000)/60000);el.innerHTML=`<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px"><div style="position:relative;width:64px;height:64px"><svg width="64" height="64" style="transform:rotate(-90deg)"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--s3)" stroke-width="5"/><circle cx="32" cy="32" r="26" fill="none" stroke="var(--teal)" stroke-width="5" stroke-linecap="round" stroke-dasharray="163" stroke-dashoffset="${163*(1-pct)}" style="transition:stroke-dashoffset 1s;"/></svg><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--teal)">${Math.round(pct*100)}%</div></div><div><div style="font-size:30px;font-weight:700;color:var(--teal)">${h}h ${mins}m</div><div style="font-size:12px;color:var(--t2)">de ${S.fast.goal}h objetivo</div></div></div><button onclick="stopFast()" class="btn btn-secondary btn-sm" style="width:auto;display:inline-block;padding:10px 18px;color:var(--red)">■ Romper ayuno</button>`;clearInterval(fastTimer);fastTimer=setInterval(()=>rFast(),60000);}
-function startFast(){const goal=prompt("¿Cuántas horas de ayuno? (ej: 16)","16");if(!goal||isNaN(+goal))return;S.fast={start:Date.now(),goal:+goal};sv();rFast();tst("⏱️ Ayuno iniciado: "+goal+"h");}
-function stopFast(){if(!confirm("¿Romper el ayuno?"))return;const el=Date.now()-S.fast.start;const h=Math.floor(el/3600000),mins=Math.floor((el%3600000)/60000);S.fast=null;sv();rFast();clearInterval(fastTimer);tst("✓ Ayuno completado: "+h+"h "+mins+"m");}
+async function startFast(){const v=await uiAsk({title:"Ayuno intermitente",message:"¿Cuántas horas de ayuno? (ej: 16)",input:true,value:"16",inputMode:"numeric",ok:"Empezar"});const goal=v===null?0:parseFloat(String(v).replace(",","."));if(!goal||goal<1||goal>72)return;S.fast={start:Date.now(),goal:goal};sv();rFast();tst("⏱️ Ayuno iniciado: "+goal+"h");}
+async function stopFast(){if(!S.fast)return;if(!await uiConfirm("Romper el ayuno","¿Seguro que quieres terminarlo ahora?",{ok:"Romper ayuno"}))return;if(!S.fast)return;const el=Date.now()-S.fast.start;const h=Math.floor(el/3600000),mins=Math.floor((el%3600000)/60000);S.fast=null;sv();rFast();clearInterval(fastTimer);tst("✓ Ayuno completado: "+h+"h "+mins+"m");}
 async function wkSum(){const el=document.getElementById("wk-sum");el.innerHTML='<div style="color:var(--t2)">Analizando con IA...</div>';const valid=S.hist.slice(-7).filter(h=>h.cal>0);if(!valid.length){el.textContent="Registra al menos un día para el análisis.";return;}const m=mt(),avg=Math.round(valid.reduce((a,h)=>a+h.cal,0)/valid.length);try{const text=await callIA([{text:`Eres nutricionista personal. Da un resumen semanal motivador en español, 4-5 frases naturales con emojis, 2 consejos concretos.
-Datos: Nombre:${S.profile?.name||"Usuario"}, Objetivo:${S.profile?.goal}, Objetivo calórico:${m?.target||2000} kcal/día, Promedio:${avg} kcal/día, Días registrados:${valid.length}/7, Proteína prom:${Math.round(valid.reduce((a,h)=>a+(h.p||0),0)/valid.length)}g/día`}],500);el.innerHTML=`<div style="font-size:13px;color:var(--t2);line-height:1.9">${text}</div>`;}catch(e){el.textContent="Error de conexión. Verifica tu internet.";}}
+Datos: Nombre:${S.profile?.name||"Usuario"}, Objetivo:${S.profile?.goal}, Objetivo calórico:${m?.target||2000} kcal/día, Promedio:${avg} kcal/día, Días registrados:${valid.length}/7, Proteína prom:${Math.round(valid.reduce((a,h)=>a+(h.p||0),0)/valid.length)}g/día`}],500);el.innerHTML=`<div style="font-size:13px;color:var(--t2);line-height:1.9">${esc(text)}</div>`;}catch(e){el.textContent="Error de conexión. Verifica tu internet.";}}
 
 // ── PROFILE ──
 function onSlider(val){const v=+val;document.getElementById("slider-val").textContent=v;document.getElementById("slider-loss").textContent=(v/7700*7).toFixed(2)+" kg/sem";document.getElementById("slider-note").textContent=v<300?"Ritmo muy suave, ideal para evitar el efecto rebote.":v<600?"Ritmo recomendado por la mayoría de nutricionistas.":v<900?"Ritmo exigente, requiere mucha disciplina.":"Ritmo agresivo. Solo con supervisión médica.";if(!S.profile)S.profile={};S.profile.customDef=v;clrGoal();document.querySelectorAll(".sfa").forEach(e=>e.classList.remove("on"));uMealHint();}
@@ -1361,12 +1388,19 @@ function ldPf(){
   uMealHint();
 }
 
-function savePf(){
+async function savePf(){
   const name=document.getElementById("pf-nm").value.trim();
   const age=+document.getElementById("pf-ag").value;
   const height=+document.getElementById("pf-ht").value;
   const weight=+document.getElementById("pf-wt").value;
   if(!name||!age||!height||!weight){tst("Completa los campos obligatorios");return;}
+  {
+    const sx=document.getElementById("pf-sx").value,fl=sx==="M"?1500:1200;
+    const cg=+document.getElementById("pf-cg").value||0;
+    if(cg&&cg<fl&&!(await uiConfirm("Objetivo muy bajo","Tu objetivo manual ("+cg+" kcal) está por debajo del mínimo orientativo ("+fl+" kcal/día). Comer tan poco sin control médico no es recomendable. ¿Guardarlo igualmente?",{ok:"Guardar igualmente"})))return;
+    const tw=+document.getElementById("pf-tw").value||weight,hm=height/100,bmiT=tw/(hm*hm);
+    if(tw<weight&&bmiT<18.5&&!(await uiConfirm("Peso objetivo bajo","Con "+tw+" kg tu IMC sería "+bmiT.toFixed(1).replace(".",",")+", por debajo de 18,5 (bajo peso). Te recomiendo revisar este objetivo con un profesional. ¿Guardarlo igualmente?",{ok:"Guardar igualmente"})))return;
+  }
   // Collect day activity
   const da={};
   for(let i=0;i<7;i++){
@@ -1384,7 +1418,7 @@ function savePf(){
   sv();ldPf();uH();tst("✓ Plan actualizado");
 }
 
-function resetAll(){if(!confirm("¿Borrar TODOS los datos (diario, peso, favoritas…)? Si no has exportado una copia, no se podrá recuperar."))return;localStorage.clear();location.reload();}
+async function resetAll(){if(!await uiConfirm("Borrar todos los datos","Se borrará todo: diario, peso, favoritas… Si no has exportado una copia, no se podrá recuperar.",{ok:"Borrar todo",danger:true}))return;localStorage.clear();location.reload();}
 
 // ── MODALS ──
 function oM(id){document.getElementById(id).classList.add("open");document.body.style.overflow="hidden";}
@@ -1392,8 +1426,30 @@ function cM(id){document.getElementById(id).classList.remove("open");document.bo
 document.querySelectorAll(".mo").forEach(el=>el.addEventListener("click",e=>{if(e.target===el)cM(el.id);}));
 
 // ── TOAST ──
-let _tt;
-function tst(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove("show"),2800);}
+let _tt,_undo=null;
+function tst(msg){const el=document.getElementById("toast");_undo=null;el.textContent=msg;el.style.pointerEvents="";el.classList.add("show");clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove("show"),2800);}
+function tstUndo(msg,fn){const el=document.getElementById("toast");_undo=fn;el.innerHTML=esc(msg)+'<button onclick="doUndo()" style="margin-left:14px;color:var(--a);font-weight:700;font-size:14px;padding:4px 2px">Deshacer</button>';el.style.pointerEvents="auto";el.classList.add("show");clearTimeout(_tt);_tt=setTimeout(()=>{el.classList.remove("show");_undo=null;},5000);}
+function doUndo(){const f=_undo;_undo=null;clearTimeout(_tt);const el=document.getElementById("toast");el.classList.remove("show");el.style.pointerEvents="";if(f)f();}
+
+// ── DIÁLOGOS PROPIOS (en lugar de prompt/confirm del navegador) ──
+let _dlgRes=null,_dlgInput=false;
+function uiAsk(o){
+  return new Promise(res=>{
+    if(_dlgRes){const r=_dlgRes;_dlgRes=null;r(_dlgInput?null:false);}
+    _dlgRes=res;_dlgInput=!!o.input;
+    document.getElementById("dlg-t").textContent=o.title||"";
+    const m=document.getElementById("dlg-m");m.textContent=o.message||"";m.style.display=o.message?"block":"none";
+    const i=document.getElementById("dlg-i");i.style.display=o.input?"block":"none";i.value=o.value||"";i.inputMode=o.inputMode||"text";
+    const ok=document.getElementById("dlg-ok");ok.textContent=o.ok||"Aceptar";ok.style.background=o.danger?"var(--red)":"";
+    document.getElementById("m-dlg").classList.add("open");
+    if(o.input)setTimeout(()=>{i.focus();i.select();},150);
+  });
+}
+const uiConfirm=(title,message,o)=>uiAsk({title,message,...(o||{})});
+function dlgEnd(v){document.getElementById("m-dlg").classList.remove("open");const r=_dlgRes;_dlgRes=null;if(r)r(v);}
+function dlgOk(){dlgEnd(_dlgInput?document.getElementById("dlg-i").value:true);}
+function dlgNo(){dlgEnd(_dlgInput?null:false);}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.getElementById("m-dlg").classList.contains("open"))dlgNo();});
 
 
 // ── FAVORITAS Y RECIENTES ──
@@ -1411,10 +1467,10 @@ function noteRecent(list){
   saveLS("nai5_rec",S.rec);
   renderFav();
 }
-function newFav(defName,items){
+async function newFav(defName,items){
   const clean=items.map(cleanEntry).filter(x=>x.cal>0||x.g>0);
   if(!clean.length){tst("No hay nada que guardar");return;}
-  const name=prompt("Nombre de la comida favorita:",defName||clean.map(x=>x.n).slice(0,2).join(" + "));
+  const name=await uiAsk({title:"Guardar como favorita",message:"Nombre de la comida favorita:",input:true,value:defName||clean.map(x=>x.n).slice(0,2).join(" + "),ok:"Guardar"});
   if(name===null)return;
   const nm=name.trim().slice(0,60)||defName||"Mi comida";
   S.fav.unshift({id:Date.now(),name:nm,items:clean});
@@ -1440,9 +1496,9 @@ function addFav(i){
   m.items.forEach(x=>S.log.push({...x}));
   sv();uH();tst("✓ "+m.name+" añadido");
 }
-function delFav(i){
+async function delFav(i){
   const m=S.fav[i];if(!m)return;
-  if(!confirm("¿Quitar «"+m.name+"» de tus favoritas?"))return;
+  if(!await uiConfirm("Quitar favorita","¿Quitar «"+m.name+"» de tus favoritas?",{ok:"Quitar",danger:true}))return;if(S.fav[i]!==m)return;
   S.fav.splice(i,1);saveLS("nai5_fav",S.fav);renderFav();
 }
 function addRec(i){
@@ -1497,11 +1553,55 @@ async function importData(ev){
     const ks=Object.keys(d.keys).filter(k=>k.startsWith("nai5_")&&typeof d.keys[k]==="string");
     if(!ks.length)throw new Error("la copia está vacía");
     ks.forEach(k=>JSON.parse(d.keys[k])); // si algún valor está roto, falla ANTES de tocar nada
-    if(!confirm("Esto reemplaza los datos actuales de este móvil por los de la copia ("+ks.length+" elementos). ¿Seguir?"))return;
+    if(!await uiConfirm("Importar copia","Esto reemplaza los datos actuales de este móvil por los de la copia ("+ks.length+" elementos). ¿Seguir?",{ok:"Importar",danger:true}))return;
     Object.keys(localStorage).filter(k=>k.startsWith("nai5_")).forEach(k=>localStorage.removeItem(k));
     ks.forEach(k=>localStorage.setItem(k,d.keys[k]));
     location.reload();
   }catch(e){tst("No se pudo importar: "+e.message);}
+}
+
+
+// ── DICTADO POR VOZ (micrófono en los campos de texto de la IA) ──
+const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
+const MIC_IDS=["qa-txt","txt-i","diet-q","ing-q"];
+let _rec=null,_recBtn=null;
+function micUI(btn,on){if(!btn)return;btn.classList.toggle("on",on);btn.setAttribute("aria-pressed",on?"true":"false");btn.setAttribute("aria-label",on?"Detener dictado":"Dictar por voz");}
+function micStop(){const r=_rec;if(!r)return;try{r.stop();}catch(e){}}
+function micToggle(id,btn){
+  if(_rec){const same=_recBtn===btn;micStop();if(same)return;}
+  const ta=document.getElementById(id);if(!ta)return;
+  const base=ta.value,sep=base&&!/\s$/.test(base)?" ":"";
+  const r=new SpeechRec();
+  r.lang="es-ES";r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
+  let gotText=false,err=null;
+  r.onresult=e=>{
+    let t="";for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;
+    t=t.trim();if(!t)return;gotText=true;
+    ta.value=base+sep+t;
+  };
+  r.onerror=e=>{err=e.error||"error";};
+  r.onend=()=>{
+    micUI(btn,false);if(_rec===r){_rec=null;_recBtn=null;}
+    if(gotText)ta.dispatchEvent(new Event("input",{bubbles:true}));
+    if(err==="not-allowed"||err==="service-not-allowed")tst("Sin permiso para el micrófono. Actívalo en los ajustes o usa el micrófono del teclado.");
+    else if(err==="audio-capture")tst("No encuentro ningún micrófono.");
+    else if(err==="network")tst("El dictado necesita conexión a internet.");
+    else if(err==="no-speech"||(!gotText&&!err))tst("No te he oído. Inténtalo de nuevo.");
+  };
+  try{r.start();_rec=r;_recBtn=btn;micUI(btn,true);}catch(e){micUI(btn,false);tst("No se pudo iniciar el micrófono.");}
+}
+function micInit(){
+  if(!SpeechRec)return; // navegador sin dictado: no se muestra el botón
+  MIC_IDS.forEach(id=>{
+    const ta=document.getElementById(id);if(!ta||ta.parentNode.classList.contains("mic-w"))return;
+    const w=document.createElement("div");w.className="mic-w";
+    ta.parentNode.insertBefore(w,ta);w.appendChild(ta);
+    const b=document.createElement("button");b.type="button";b.className="mic";
+    b.setAttribute("aria-label","Dictar por voz");b.setAttribute("aria-pressed","false");
+    b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+    b.onclick=()=>micToggle(id,b);
+    w.appendChild(b);
+  });
 }
 
 // ── CAMBIO DE DÍA ──
@@ -1510,9 +1610,9 @@ function checkDay(){
   const t=td();
   if(t===curDay)return;
   curDay=t;
-  S.log=JSON.parse(localStorage.getItem("nai5_l_"+t)||"[]");
-  S.water=parseInt(localStorage.getItem("nai5_w_"+t)||"0");
-  S.ex=JSON.parse(localStorage.getItem("nai5_e_"+t)||"[]");
+  S.log=lsa("nai5_l_"+t);
+  S.water=lsn("nai5_w_"+t,0);
+  S.ex=lsa("nai5_e_"+t);
   uH();rMore();
   if(document.getElementById("page-progress").classList.contains("active"))uPr();
   tst("📅 Nuevo día: diario a cero");
@@ -1560,10 +1660,10 @@ function eSave(){
 // ── REPETIR EL DÍA DE AYER ──
 function yKey(){const d=new Date(curDay+"T12:00:00");d.setDate(d.getDate()-1);return dkey(d);}
 function yLog(){try{const a=JSON.parse(localStorage.getItem("nai5_l_"+yKey())||"[]");return Array.isArray(a)?a:[];}catch(e){return [];}}
-function repYesterday(){
+async function repYesterday(){
   const y=yLog();
   if(!y.length){tst("Ayer no registraste nada");return;}
-  if(S.log.length&&!confirm("Hoy ya tienes "+S.log.length+" entradas. ¿Añadir también las "+y.length+" de ayer?"))return;
+  if(S.log.length&&!(await uiConfirm("Repetir ayer","Hoy ya tienes "+S.log.length+" entradas. ¿Añadir también las "+y.length+" de ayer?",{ok:"Añadir"})))return;
   y.forEach(x=>{const c={...x};delete c.b;S.log.push(c);});
   sv();uH();tst("↺ Copiado el diario de ayer ("+y.length+")");
 }
@@ -1911,7 +2011,11 @@ window.addEventListener("orientationchange",()=>setTimeout(fitApp,300));
 
 // ── INIT ──
 window.addEventListener("DOMContentLoaded",()=>{
-  fitApp();initS();rF();rMore();uH();renderFav();initBC();
+  // Pide al navegador que no borre los datos de la app si hay poco espacio o pasa tiempo sin abrirla
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
+  // iOS hace zoom solo al enfocar campos con letra pequeña: lo evitamos sin bloquear el zoom manual
+  try{const vp=document.querySelector('meta[name=viewport]');if(vp){const base=vp.content,isF=t=>t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);document.addEventListener("focusin",e=>{if(isF(e.target))vp.content=base+",maximum-scale=1";});document.addEventListener("focusout",e=>{if(isF(e.target))vp.content=base;});}}catch(e){}
+  micInit();fitApp();initS();rF();rMore();uH();renderFav();initBC();
   const dv=S.profile?.customDef||550;
   const sl=document.getElementById("def-slider");
   if(sl){sl.value=dv;document.getElementById("slider-val").textContent=dv;document.getElementById("slider-loss").textContent=(dv/7700*7).toFixed(2)+" kg/sem";}
