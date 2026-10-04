@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Nutri AI</title>
@@ -27,7 +27,8 @@ if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.se
   --head:-apple-system,'SF Pro Display','Helvetica Neue',Arial,sans-serif;
   --st:env(safe-area-inset-top,44px);--sb:env(safe-area-inset-bottom,34px);--r:16px;
 }
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:var(--sans);font-size:15px;-webkit-font-smoothing:antialiased;}
 button{font-family:var(--sans);cursor:pointer;border:none;outline:none;background:none;}
 input,textarea,select{font-family:var(--sans);outline:none;color:var(--t1);}
@@ -689,11 +690,12 @@ function mt(){
   const todayMult=ACT_MULT[getDayAct(todayDayIdx())];
   const tdeToday=Math.round(tdee*todayMult/avgMult);
   
-  if(p.calGoal)return{tmb:Math.round(tmb),tdee,tdeToday,target:p.calGoal,cal};
+  const tgtDay=t=>Math.max(calFloor(p),t+(tdeToday-tdee)); // objetivo de HOY = objetivo semanal ± diferencia del día vs. media
+  if(p.calGoal)return{tmb:Math.round(tmb),tdee,tdeToday,target:p.calGoal,targetToday:tgtDay(p.calGoal),cal};
   const def=p.customDef||({slow:275,moderate:550,fast:825,vfast:1100}[p.lossRate||"moderate"])||550;
   const adj=p.goal==="lose"?-def:p.goal==="gain"?300:0;
   const fl=calFloor(p),rawT=Math.round(tdee+adj),target=Math.max(fl,rawT);
-  return{tmb:Math.round(tmb),tdee,tdeToday,target,cal,floored:rawT<fl?fl:0};
+  return{tmb:Math.round(tmb),tdee,tdeToday,target,targetToday:tgtDay(target),cal,floored:rawT<fl?fl:0};
 }
 
 // Migración única: fija el objetivo que ya tenías (fórmula antigua) como objetivo manual
@@ -724,7 +726,7 @@ function gP(id,btn){micStop();stopScan();document.querySelectorAll(".page").forE
 
 // ── HOME ──
 function uH(){
-  const t=tots(),m=mt(),tgt=m?.target||2000;
+  const t=tots(),m=mt(),tgt=m?.targetToday||2000;
   const ms=getMacroSplit();
   const pt=Math.round(tgt*ms.p/4),ct=Math.round(tgt*ms.c/4),ft=Math.round(tgt*ms.f/9);
   const exC=S.ex.reduce((a,e)=>a+e.cal,0);
@@ -822,7 +824,7 @@ async function onPh(ev){
 async function doText(){micStop();const txt=document.getElementById("txt-i").value.trim();if(!txt){tst("Escribe qué has comido");return;}document.getElementById("ai-ld").style.display="flex";document.getElementById("ai-rs").style.display="none";await aiCallG(txt,null,null);}
 async function aiCallG(text,b64,mime){
   const isImg=!!b64;
-  const m=mt(),tgt=m?.target||2000;
+  const m=mt(),tgt=m?.targetToday||2000;
   const prompt=isImg?`Eres un nutricionista experto analizando una imagen de comida. Antes de estimar nada, DEBES hacer un análisis visual en este orden:
 
 PASO 1 — IDENTIFICA EL RECIPIENTE:
@@ -1168,7 +1170,7 @@ function rMore(){
   document.getElementById("ex-list").innerHTML=S.ex.length?S.ex.map((x,i)=>`<div class="fr"><div class="fe">${icons[x.type]}</div><div class="fi"><div class="fn">${x.label}</div><div class="fm">${x.value} ${x.type==="steps"?"pasos":"min"}</div></div><div class="fc"><div class="fk" style="color:var(--purple)">−${x.cal}</div><div class="fu">kcal</div></div><button onclick="rmEx(${i})" style="color:var(--t3);font-size:16px;padding:8px">✕</button></div>`).join(""):'<div style="text-align:center;padding:16px;color:var(--t3);font-size:14px">Sin ejercicio hoy</div>';
   const tc={"Alta Proteína":"tag-green","Desayuno":"tag-gold","Omega-3":"tag-blue","Low Carb":"tag-orange","Detox":"tag-purple"};
   document.getElementById("rec-list").innerHTML=RECS.map((r,i)=>`<div class="rec" onclick="oRec(${i})"><div style="height:80px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:40px;position:relative">${r.e}<span class="tag ${tc[r.tag]||'tag-blue'}" style="position:absolute;top:10px;right:12px">${r.tag}</span></div><div style="padding:13px 15px"><div style="font-size:17px;margin-bottom:6px;font-weight:700;letter-spacing:-0.2px">${r.n}</div><div style="display:flex;gap:10px;flex-wrap:wrap"><span class="label" style="color:var(--a)">${r.kcal} kcal</span><span class="label">${r.prot}g prot</span><span class="label">⏱ ${r.time}</span></div></div></div>`).join("");
-  const m=mt(),tgt=m?.target||2000,meals=S.profile?.meals||3,pm=Math.round(tgt/meals);
+  const m=mt(),tgt=m?.targetToday||2000,meals=S.profile?.meals||3,pm=Math.round(tgt/meals);
   const mN=["Desayuno","Almuerzo","Comida","Merienda","Cena","Post-entreno"].slice(0,meals);
   document.getElementById("meal-plan").innerHTML=mN.map((n,i)=>`<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:${i<meals-1?12:0}px"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:8px;height:8px;border-radius:50%;background:var(--a);margin-top:4px;"></div>${i<meals-1?'<div style="width:1px;flex:1;background:var(--br);margin-top:4px"></div>':""}</div><div style="flex:1;padding-bottom:${i<meals-1?12:0}px;${i<meals-1?"border-bottom:0.5px solid var(--br);":""}"><div style="font-weight:600;font-size:14px">${n}</div><div style="font-size:12px;color:var(--t2);margin-top:2px">≈ ${pm} kcal</div></div></div>`).join("");
   rFast();
@@ -1185,7 +1187,7 @@ async function checkDiet(){
   if(!q){tst("Escribe qué quieres consultar");return;}
   const btn=document.getElementById("diet-btn"),btnT=document.getElementById("diet-btn-txt");
   btn.disabled=true;btnT.textContent="Consultando IA...";
-  const m=mt(),tgt=m?.target||2000,t=tots();
+  const m=mt(),tgt=m?.targetToday||2000,t=tots();
   const rem=tgt-t.cal;
   const goal=S.profile?.goal||"lose";
   const goalStr=goal==="lose"?"perder grasa":goal==="gain"?"ganar músculo":"mantener peso";
@@ -1211,7 +1213,7 @@ async function genRecipe(){
   if(!q){tst("Escribe los ingredientes que tienes");return;}
   const btn=document.getElementById("rec-btn"),btnT=document.getElementById("rec-btn-txt");
   btn.disabled=true;btnT.textContent="Generando receta...";
-  const m=mt(),tgt=m?.target||2000;
+  const m=mt(),tgt=m?.targetToday||2000;
   const meals=S.profile?.meals||3;
   const pm=Math.round(tgt/meals);
   const goal=S.profile?.goal||"lose";
@@ -2013,8 +2015,10 @@ window.addEventListener("orientationchange",()=>setTimeout(fitApp,300));
 window.addEventListener("DOMContentLoaded",()=>{
   // Pide al navegador que no borre los datos de la app si hay poco espacio o pasa tiempo sin abrirla
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
-  // iOS hace zoom solo al enfocar campos con letra pequeña: lo evitamos sin bloquear el zoom manual
-  try{const vp=document.querySelector('meta[name=viewport]');if(vp){const base=vp.content,isF=t=>t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);document.addEventListener("focusin",e=>{if(isF(e.target))vp.content=base+",maximum-scale=1";});document.addEventListener("focusout",e=>{if(isF(e.target))vp.content=base;});}}catch(e){}
+  // Sin zoom: iOS ignora user-scalable=no en el pellizco, así que se corta también por eventos
+  ["gesturestart","gesturechange","gestureend"].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+  document.addEventListener("touchmove",e=>{if(e.touches&&e.touches.length>1)e.preventDefault();},{passive:false});
+  let lastTap=0;document.addEventListener("touchend",e=>{const n=Date.now();if(n-lastTap<350&&!/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))e.preventDefault();lastTap=n;},{passive:false});
   micInit();fitApp();initS();rF();rMore();uH();renderFav();initBC();
   const dv=S.profile?.customDef||550;
   const sl=document.getElementById("def-slider");
