@@ -215,7 +215,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
   </div>
   <div class="stats-grid">
     <div class="stat-cell"><div class="label" style="margin-bottom:2px">RESTANTES</div><div class="stat-val neon-text" id="h-rem">—</div><div style="font-size:10px;color:var(--t3)">kcal</div></div>
-    <div class="stat-cell"><div class="label" style="margin-bottom:2px">EJERCICIO</div><div class="stat-val" style="color:var(--purple)" id="h-ex">0</div><div style="font-size:10px;color:var(--t3)">quemadas · cuentan 50 %</div></div>
+    <div class="stat-cell" onclick="openXk()" style="cursor:pointer"><div class="label" style="margin-bottom:2px">EJERCICIO</div><div class="stat-val" style="color:var(--purple)" id="h-ex">0</div><div id="h-exnote" style="font-size:10px;color:var(--t3)">quemadas</div><div style="margin-top:6px"><span style="display:inline-block;background:rgba(10,132,255,0.14);color:var(--a);font-weight:700;font-size:11px;border-radius:99px;padding:4px 11px">＋ kcal</span></div></div>
     <div class="stat-cell"><div class="label" style="margin-bottom:2px">AGUA</div><div class="stat-val" style="color:var(--blue)" id="h-wat">0/8</div><div style="font-size:10px;color:var(--t3)">vasos</div></div>
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:0 4px"><div class="label">GASTO DE HOY (ESTIMADO)</div><div style="font-size:18px;font-weight:700;color:var(--orange)" id="h-spent">—</div></div>
@@ -460,6 +460,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
     <div class="opt smac" data-v="keto" onclick="selMacro('keto',this)"><div><div class="ot">🥓 Keto</div><div class="os">Proteína por kg · resto 7 % carbs / 93 % grasa</div></div><div class="check"><span class="checkmark">✓</span></div></div>
   </div>
   <div><label class="inp-label" style="margin-bottom:8px;display:block">Comidas al día</label><div style="display:flex;gap:7px"><button class="pill" id="mf-2" onclick="selMeals(2,this)">2</button><button class="pill on" id="mf-3" onclick="selMeals(3,this)">3</button><button class="pill" id="mf-4" onclick="selMeals(4,this)">4</button><button class="pill" id="mf-5" onclick="selMeals(5,this)">5</button><button class="pill" id="mf-6" onclick="selMeals(6,this)">6</button></div><div style="font-size:12px;color:var(--t3);margin-top:7px" id="meal-cal-hint"></div></div>
+  <div><label class="inp-label" style="margin-bottom:4px;display:block">Ejercicio que suma al objetivo</label><div style="font-size:12px;color:var(--t3);margin-bottom:8px;line-height:1.5">Los relojes y apps suelen sobrestimar lo quemado. 100 % es lo más generoso.</div><select class="inp" id="pf-xp"><option value="100">100 % (todo)</option><option value="75">75 %</option><option value="50">50 %</option></select></div>
   <div><label class="inp-label" style="margin-bottom:4px;display:block">Objetivo de agua (vasos/día)</label><input class="inp" id="pf-wg" type="number" placeholder="8" min="4" max="16"></div>
   <button onclick="savePf()" class="btn btn-neon" style="margin-top:4px">Guardar y recalcular plan</button>
   <div class="divider"></div>
@@ -514,6 +515,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
   <button onclick="cM('m-edit')" class="btn btn-secondary">Cancelar</button>
 </div></div>
 <!-- EXERCISE MODAL -->
+<div class="mo" id="m-xk"><div class="ms"><div class="mh"></div><div style="font-size:22px;margin-bottom:6px;font-weight:700;letter-spacing:-0.3px">Calorías quemadas</div><div id="xk-hint" style="font-size:13px;color:var(--t2);margin-bottom:14px;line-height:1.6"></div><div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"><button class="pill" onclick="document.getElementById('xk-c').value=100">100</button><button class="pill" onclick="document.getElementById('xk-c').value=200">200</button><button class="pill" onclick="document.getElementById('xk-c').value=300">300</button><button class="pill" onclick="document.getElementById('xk-c').value=500">500</button></div><input class="inp" id="xk-c" type="number" inputmode="numeric" placeholder="kcal, ej. 200" style="margin-bottom:10px"><input class="inp" id="xk-n" type="text" placeholder="Nombre (opcional): correr, bici…" style="margin-bottom:16px"><button onclick="cnfXk()" class="btn btn-neon" style="margin-bottom:8px">Añadir al día de hoy</button><button onclick="cM('m-xk')" class="btn btn-secondary">Cancelar</button></div></div>
 <div class="mo" id="m-ex"><div class="ms"><div class="mh"></div><div style="font-size:22px;margin-bottom:16px;font-weight:700;letter-spacing:-0.3px">Añadir ejercicio</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px"><div class="opt" data-v="steps" onclick="sEx('steps',this)"><div style="text-align:center;width:100%"><div style="font-size:32px">👣</div><div class="ot" style="text-align:center;margin-top:6px">Pasos</div></div><div class="check"><span class="checkmark">✓</span></div></div><div class="opt" data-v="cardio" onclick="sEx('cardio',this)"><div style="text-align:center;width:100%"><div style="font-size:32px">🏃</div><div class="ot" style="text-align:center;margin-top:6px">Cardio</div></div><div class="check"><span class="checkmark">✓</span></div></div><div class="opt" data-v="weights" onclick="sEx('weights',this)"><div style="text-align:center;width:100%"><div style="font-size:32px">🏋️</div><div class="ot" style="text-align:center;margin-top:6px">Pesas</div></div><div class="check"><span class="checkmark">✓</span></div></div><div class="opt" data-v="other" onclick="sEx('other',this)"><div style="text-align:center;width:100%"><div style="font-size:32px">⚡</div><div class="ot" style="text-align:center;margin-top:6px">Otro</div></div><div class="check"><span class="checkmark">✓</span></div></div></div><div id="ex-f" style="display:none"><label class="inp-label" id="ex-lb">Duración (min)</label><input class="inp" id="ex-v" type="number" placeholder="30" style="margin-bottom:10px"><label class="inp-label">Calorías quemadas (estimado)</label><input class="inp" id="ex-c" type="number" placeholder="200" style="margin-bottom:16px"></div><button onclick="cnfEx()" class="btn btn-neon" style="margin-bottom:8px">Añadir ejercicio</button><button onclick="cM('m-ex')" class="btn btn-secondary">Cancelar</button></div></div>
 <!-- RECIPE MODAL -->
 <div class="mo" id="m-rec"><div class="ms"><div class="mh"></div><div style="font-size:52px;text-align:center;margin-bottom:8px" id="rm-e"></div><div style="font-size:22px;text-align:center;margin-bottom:8px;font-weight:700;letter-spacing:-0.3px" id="rm-n"></div><div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:18px" id="rm-m"></div><div class="label" style="margin-bottom:8px;color:var(--a)">INGREDIENTES</div><div id="rm-i" style="margin-bottom:16px"></div><div class="label" style="margin-bottom:8px;color:var(--a)">PREPARACIÓN</div><div id="rm-s" style="margin-bottom:22px"></div><button onclick="cM('m-rec')" class="btn btn-secondary">Cerrar</button></div></div>
@@ -740,14 +742,14 @@ function uH(){
   const t=tots(),m=mt(),tgt=m?.targetToday||2000;
   const mtg=macroTargets(tgt),pt=mtg.p,ct=mtg.c,ft=mtg.f;
   const exC=S.ex.reduce((a,e)=>a+e.cal,0);
-  const rem=tgt+Math.round(exC*0.5)-t.cal;
+  const rem=tgt+Math.round(exC*exF())-t.cal;
   document.getElementById("h-greeting").textContent=greeting();
   document.getElementById("h-name").textContent=S.profile?.name||"Usuario";
   document.getElementById("h-str").textContent=strk()+"🔥";
   document.getElementById("r-cal").textContent=Math.round(t.cal);
-  document.getElementById("r-goal").textContent=tgt;const lf=document.getElementById("r-left");if(lf){lf.textContent=rem>=0?"quedan "+Math.round(rem):"te pasas "+Math.round(-rem);lf.style.color=rem>=0?"var(--a)":"var(--red)";}const sp=document.getElementById("h-spent");if(sp)sp.textContent=m?(m.tdeToday+Math.round(exC*0.5)).toLocaleString("es-ES")+" kcal":"—";
+  document.getElementById("r-goal").textContent=tgt;const lf=document.getElementById("r-left");if(lf){lf.textContent=rem>=0?"quedan "+Math.round(rem):"te pasas "+Math.round(-rem);lf.style.color=rem>=0?"var(--a)":"var(--red)";}const sp=document.getElementById("h-spent");if(sp)sp.textContent=m?(m.tdeToday+Math.round(exC*exF())).toLocaleString("es-ES")+" kcal":"—";
   const re=document.getElementById("h-rem");re.textContent=Math.round(rem);re.style.color=rem<0?"var(--red)":"var(--a)";
-  document.getElementById("h-ex").textContent=exC;
+  document.getElementById("h-ex").textContent=exC;document.getElementById("h-exnote").textContent="quemadas · cuentan "+Math.round(exF()*100)+" %";
   document.getElementById("h-wat").textContent=S.water+"/"+(S.profile?.waterGoal||8);
   const pct=Math.min(t.cal/tgt,1);
   const arc=document.getElementById("rarc");arc.style.strokeDashoffset=339*(1-pct);arc.style.stroke=t.cal>tgt?"var(--red)":"url(#rg)";
@@ -1125,12 +1127,12 @@ function cnfP(){const f=S.cF,g=Math.max(1,+document.getElementById("pm-g").value
 let chRange=7,chSelK=null;
 function dayDef(k){
   const m=mt();if(!m)return null;
-  if(k===curDay){const t=tots();if(!(t.cal>0))return null;const g=m.tdeToday+Math.round(S.ex.reduce((a,x)=>a+x.cal,0)*0.5),e=Math.round(t.cal);return{e,g,d:g-e};}
+  if(k===curDay){const t=tots();if(!(t.cal>0))return null;const g=m.tdeToday+Math.round(S.ex.reduce((a,x)=>a+x.cal,0)*exF()),e=Math.round(t.cal);return{e,g,d:g-e};}
   let D={};try{D=lsj("nai5_def",{});}catch(e){}
   if(D[k])return{e:D[k].e,g:D[k].g,d:D[k].g-D[k].e};
   const h=S.hist.find(x=>x.date===k);if(!h||!(h.cal>0))return null;
   const idx=(new Date(k+"T12:00:00").getDay()+6)%7;let ex=[];try{ex=JSON.parse(localStorage.getItem("nai5_e_"+k)||"[]");}catch(e){}
-  const g=Math.round(m.tdee*ACT_MULT[getDayAct(idx)]/avgMultOf(S.profile))+Math.round(ex.reduce((a,x)=>a+x.cal,0)*0.5);
+  const g=Math.round(m.tdee*ACT_MULT[getDayAct(idx)]/avgMultOf(S.profile))+Math.round(ex.reduce((a,x)=>a+x.cal,0)*exF());
   return{e:h.cal,g,d:g-h.cal};
 }
 function defTotal(){
@@ -1211,7 +1213,7 @@ function logW(){const v=+document.getElementById("w-i").value;if(!v||v<20||v>300
 // ── MORE / EXTRAS ──
 function rMore(){
   const icons={steps:"👣",cardio:"🏃",weights:"🏋️",other:"⚡"};
-  document.getElementById("ex-list").innerHTML=S.ex.length?S.ex.map((x,i)=>`<div class="fr"><div class="fe">${icons[x.type]}</div><div class="fi"><div class="fn">${x.label}</div><div class="fm">${x.value} ${x.type==="steps"?"pasos":"min"}</div></div><div class="fc"><div class="fk" style="color:var(--purple)">−${x.cal}</div><div class="fu">kcal</div></div><button onclick="rmEx(${i})" style="color:var(--t3);font-size:16px;padding:8px">✕</button></div>`).join(""):'<div style="text-align:center;padding:16px;color:var(--t3);font-size:14px">Sin ejercicio hoy</div>';
+  document.getElementById("ex-list").innerHTML=S.ex.length?S.ex.map((x,i)=>`<div class="fr"><div class="fe">${icons[x.type]}</div><div class="fi"><div class="fn">${esc(x.label)}</div><div class="fm">${x.value?x.value+" "+(x.type==="steps"?"pasos":"min"):"kcal directas"}</div></div><div class="fc"><div class="fk" style="color:var(--purple)">−${x.cal}</div><div class="fu">kcal</div></div><button onclick="rmEx(${i})" style="color:var(--t3);font-size:16px;padding:8px">✕</button></div>`).join(""):'<div style="text-align:center;padding:16px;color:var(--t3);font-size:14px">Sin ejercicio hoy</div>';
   const tc={"Alta Proteína":"tag-green","Desayuno":"tag-gold","Omega-3":"tag-blue","Low Carb":"tag-orange","Detox":"tag-purple"};
   document.getElementById("rec-list").innerHTML=RECS.map((r,i)=>`<div class="rec" onclick="oRec(${i})"><div style="height:80px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:40px;position:relative">${r.e}<span class="tag ${tc[r.tag]||'tag-blue'}" style="position:absolute;top:10px;right:12px">${r.tag}</span></div><div style="padding:13px 15px"><div style="font-size:17px;margin-bottom:6px;font-weight:700;letter-spacing:-0.2px">${r.n}</div><div style="display:flex;gap:10px;flex-wrap:wrap"><span class="label" style="color:var(--a)">${r.kcal} kcal</span><span class="label">${r.prot}g prot</span><span class="label">⏱ ${r.time}</span></div></div></div>`).join("");
   const m=mt(),tgt=m?.targetToday||2000,meals=S.profile?.meals||3,pm=Math.round(tgt/meals);
@@ -1306,6 +1308,10 @@ Sé práctico y usa SOLO los ingredientes que mencionó (puedes añadir sal, ace
 }
 
 function rmEx(i){S.ex.splice(i,1);sv();rMore();uH();}
+// % de las kcal de ejercicio que se suman al objetivo del día (Perfil). Por defecto 100 %.
+const exF=()=>{const v=S.profile?.exPct,n=(v==null||v==="")?100:+v;return(Number.isFinite(n)&&n>=0&&n<=100?n:100)/100;};
+function openXk(){document.getElementById("xk-c").value="";document.getElementById("xk-n").value="";document.getElementById("xk-hint").textContent="Se suma al objetivo de hoy el "+Math.round(exF()*100)+" % de lo que pongas (se cambia en Perfil).";oM("m-xk");}
+function cnfXk(){const cal=Math.round(+document.getElementById("xk-c").value);if(!(cal>0)||cal>3000){tst("Pon entre 1 y 3000 kcal");return;}const n=document.getElementById("xk-n").value.trim().slice(0,40);S.ex.push({type:"other",label:n||"Ejercicio",value:0,cal});sv();cM("m-xk");rMore();uH();tst("✓ +"+Math.round(cal*exF())+" kcal al objetivo de hoy");}
 function openEx(){S.cEx=null;document.getElementById("ex-f").style.display="none";document.querySelectorAll("#m-ex .opt").forEach(e=>e.classList.remove("on"));oM("m-ex");}
 function sEx(type,el){S.cEx=type;document.querySelectorAll("#m-ex .opt").forEach(e=>e.classList.remove("on"));el.classList.add("on");document.getElementById("ex-f").style.display="block";document.getElementById("ex-lb").textContent=type==="steps"?"Número de pasos":"Duración (minutos)";document.getElementById("ex-c").value={steps:"100",cardio:"300",weights:"200",other:"150"}[type];}
 function cnfEx(){const type=S.cEx;if(!type)return;const val=+document.getElementById("ex-v").value;const cal=+document.getElementById("ex-c").value||0;if(!val){tst("Introduce un valor");return;}S.ex.push({type,label:{steps:"Pasos",cardio:"Cardio",weights:"Pesas",other:"Ejercicio"}[type],value:val,cal});sv();cM("m-ex");rMore();uH();tst("✓ Ejercicio: −"+cal+" kcal");document.getElementById("ex-v").value="";}
@@ -1400,6 +1406,7 @@ function ldPf(){
   if(p.sex)document.getElementById("pf-sx").value=p.sex;
   if(p.height)document.getElementById("pf-ht").value=p.height;
   if(p.weight)document.getElementById("pf-wt").value=p.weight;
+  document.getElementById("pf-xp").value=String(Math.round(exF()*100));
   if(p.targetWeight)document.getElementById("pf-tw").value=p.targetWeight;
   if(p.activity)document.getElementById("pf-ac") && (document.getElementById("pf-ac").value=p.activity);
   if(p.calGoal)document.getElementById("pf-cg").value=p.calGoal;
@@ -1460,6 +1467,7 @@ async function savePf(){
     calGoal:+document.getElementById("pf-cg").value||null,
     customDef:+document.getElementById("def-slider").value||550,
     waterGoal:+document.getElementById("pf-wg").value||8,
+    exPct:+document.getElementById("pf-xp").value||100,
     dayActivity,setup:true};
   sv();ldPf();uH();tst("✓ Plan actualizado");
 }
