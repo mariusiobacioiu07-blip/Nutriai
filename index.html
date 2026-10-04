@@ -198,7 +198,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
       </svg>
       <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
         <div style="font-size:28px;font-weight:700;line-height:1;color:var(--t1)" id="r-cal">0</div>
-        <div style="font-size:11px;color:var(--t3);margin-top:2px">de <span id="r-goal" style="color:var(--t2)">2000</span></div>
+        <div id="r-left" style="font-size:11px;font-weight:700;margin-top:3px"></div><div style="font-size:11px;color:var(--t3);margin-top:2px">de <span id="r-goal" style="color:var(--t2)">2000</span></div>
         <div style="font-size:10px;color:var(--t3)">kcal</div>
       </div>
     </div>
@@ -213,6 +213,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
     <div class="stat-cell"><div class="label" style="margin-bottom:2px">EJERCICIO</div><div class="stat-val" style="color:var(--purple)" id="h-ex">0</div><div style="font-size:10px;color:var(--t3)">quemadas · cuentan 50 %</div></div>
     <div class="stat-cell"><div class="label" style="margin-bottom:2px">AGUA</div><div class="stat-val" style="color:var(--blue)" id="h-wat">0/8</div><div style="font-size:10px;color:var(--t3)">vasos</div></div>
   </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:0 4px"><div class="label">GASTO DE HOY (ESTIMADO)</div><div style="font-size:18px;font-weight:700;color:var(--orange)" id="h-spent">—</div></div>
 </div>
 <div class="card" style="margin-bottom:12px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -707,7 +708,7 @@ function uH(){
   document.getElementById("h-name").textContent=S.profile?.name||"Usuario";
   document.getElementById("h-str").textContent=strk()+"🔥";
   document.getElementById("r-cal").textContent=Math.round(t.cal);
-  document.getElementById("r-goal").textContent=tgt;
+  document.getElementById("r-goal").textContent=tgt;const lf=document.getElementById("r-left");if(lf){lf.textContent=rem>=0?"quedan "+Math.round(rem):"te pasas "+Math.round(-rem);lf.style.color=rem>=0?"var(--a)":"var(--red)";}const sp=document.getElementById("h-spent");if(sp)sp.textContent=m?(m.tdeToday+Math.round(exC*0.5)).toLocaleString("es-ES")+" kcal":"—";
   const re=document.getElementById("h-rem");re.textContent=Math.round(rem);re.style.color=rem<0?"var(--red)":"var(--a)";
   document.getElementById("h-ex").textContent=exC;
   document.getElementById("h-wat").textContent=S.water+"/"+(S.profile?.waterGoal||8);
