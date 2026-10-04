@@ -12,6 +12,11 @@ const MODELS = {
   groqVision: () => process.env.GROQ_VISION_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct",
 };
 
+// Reservas de Gemini, en orden. Se pueden cambiar con GEMINI_FALLBACKS="modelo1,modelo2" (sin "models/").
+// Por defecto, modelos que aparecían en tu listado de ListModels.
+const GEMINI_FALLBACKS = () =>
+  (process.env.GEMINI_FALLBACKS || "gemini-3.5-flash,gemini-3.5-flash-lite").split(",").map((s) => s.trim());
+
 // ── Límite de peticiones (best-effort: memoria de la instancia, no es global) ──
 const hits = new Map();
 function rateLimited(req, max = 30, windowMs = 60_000) {
@@ -56,7 +61,9 @@ async function postJSON(url, headers, body, timeoutMs = 25_000) {
     try { json = JSON.parse(text); } catch { json = null; }
     if (!r.ok) {
       const msg = json?.error?.message || json?.error || text.slice(0, 200);
-      throw new Error(`Proveedor ${r.status}: ${typeof msg === "string" ? msg : JSON.stringify(msg)}`);
+      const err = new Error(`Proveedor ${r.status}: ${typeof msg === "string" ? msg : JSON.stringify(msg)}`);
+      err.status = r.status;
+      throw err;
     }
     return json;
   } finally {
@@ -72,19 +79,38 @@ async function generate(parts, { maxTokens = 1000, temperature = 0.3 } = {}) {
   if (provider === "gemini") {
     const key = process.env.GEMINI_API_KEY;
     if (!key) throw new Error("Falta GEMINI_API_KEY en el servidor");
-    const j = await postJSON(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODELS.gemini()}:generateContent`,
-      { "x-goog-api-key": key },
-      {
-        contents: [{
-          role: "user",
-          parts: parts.map((p) => (p.image ? { inline_data: { mime_type: p.image.mime, data: p.image.data } } : { text: p.text })),
-        }],
-        // Los modelos Gemini recientes "piensan" y esos tokens cuentan dentro de maxOutputTokens.
-        // Sin margen extra, la respuesta puede quedar cortada o vacía → sumamos holgura.
-        generationConfig: { maxOutputTokens: maxTokens + 4096, temperature },
+    const body = {
+      contents: [{
+        role: "user",
+        parts: parts.map((p) => (p.image ? { inline_data: { mime_type: p.image.mime, data: p.image.data } } : { text: p.text })),
+      }],
+      // Los modelos Gemini recientes "piensan" y esos tokens cuentan dentro de maxOutputTokens.
+      // Sin margen extra, la respuesta puede quedar cortada o vacía → sumamos holgura.
+      generationConfig: { maxOutputTokens: maxTokens + 4096, temperature },
+    };
+    // Modelo principal + reservas (si Google responde 503/429/500 por saturación, probamos el siguiente).
+    const chain = [MODELS.gemini(), ...GEMINI_FALLBACKS()].filter((m, i, a) => m && a.indexOf(m) === i);
+    const started = Date.now();
+    let j, lastErr;
+    for (let i = 0; i < chain.length; i++) {
+      if (Date.now() - started > 18_000) break; // Vercel corta a 30 s: no arrancamos intentos que no caben
+      try {
+        j = await postJSON(
+          `https://generativelanguage.googleapis.com/v1beta/models/${chain[i]}:generateContent`,
+          { "x-goog-api-key": key },
+          body,
+          12_000
+        );
+        break;
+      } catch (e) {
+        lastErr = e;
+        const transient = e.name === "AbortError" || [429, 500, 503, 504].includes(e.status);
+        const modelGone = e.status === 404 || e.status === 403; // retirado / no disponible para tu cuenta
+        if (!transient && !modelGone) throw e; // 400 (petición mala), 401 (clave mala)… no se arregla cambiando de modelo
+        if (e.status === 503 && i === 0) await new Promise((r) => setTimeout(r, 700)); // pausa breve antes de saltar
       }
-    );
+    }
+    if (!j) throw lastErr || new Error("Gemini no respondió");
     const cand = j?.candidates?.[0];
     const txt = (cand?.content?.parts || []).filter((p) => !p.thought).map((p) => p.text || "").join("");
     if (!txt) {
