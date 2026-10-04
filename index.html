@@ -1533,41 +1533,88 @@ function rWChart(){
 // ── ESCÁNER DE CÓDIGO DE BARRAS (Open Food Facts) ──
 const bcMsg=m=>{const e=document.getElementById("bc-msg");if(e)e.textContent=m||"";};
 let _sc={stream:null,timer:0,on:false,starting:false};
+// Safari/iPhone (y Firefox) no tienen BarcodeDetector: en esos casos se carga ZXing (JS) solo cuando se pulsa «Escanear».
+const ZX_URL="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
+let _zxP=null;
+const canCam=()=>!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+function loadZX(){
+  if(window.ZXing)return Promise.resolve();
+  if(_zxP)return _zxP;
+  _zxP=new Promise((ok,ko)=>{
+    const s=document.createElement("script");s.src=ZX_URL;
+    s.onload=()=>window.ZXing?ok():ko(new Error("zxing"));
+    s.onerror=()=>{s.remove();ko(new Error("zxing-load"));};
+    document.head.appendChild(s);
+  }).catch(e=>{_zxP=null;throw e;});
+  return _zxP;
+}
+// Devuelve una función detect(video) -> texto del código o null
+async function makeDetector(){
+  const isCode=t=>/^\d{8,14}$/.test(t||"");
+  if("BarcodeDetector" in window){
+    let fmts=["ean_13","ean_8","upc_a","upc_e"];
+    try{const sup=await BarcodeDetector.getSupportedFormats();const ok=fmts.filter(x=>sup.includes(x));if(ok.length)fmts=ok;}catch(e){}
+    const det=new BarcodeDetector({formats:fmts});
+    return async v=>{const r=await det.detect(v);const h=r.find(x=>isCode(x.rawValue));return h?h.rawValue:null;};
+  }
+  await loadZX();
+  const Z=window.ZXing,hints=new Map();
+  hints.set(Z.DecodeHintType.POSSIBLE_FORMATS,[Z.BarcodeFormat.EAN_13,Z.BarcodeFormat.EAN_8,Z.BarcodeFormat.UPC_A,Z.BarcodeFormat.UPC_E]);
+  hints.set(Z.DecodeHintType.TRY_HARDER,true);
+  const rd=new Z.MultiFormatReader();rd.setHints(hints);
+  const cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true});
+  return async v=>{
+    const w=v.videoWidth,h=v.videoHeight;if(!w||!h)return null;
+    const sx=Math.round(w*0.08),sy=Math.round(h*0.2),sw=Math.round(w*0.84),sh=Math.round(h*0.6); // zona central
+    const k=Math.min(1,960/sw);cv.width=Math.round(sw*k);cv.height=Math.round(sh*k);
+    cx.drawImage(v,sx,sy,sw,sh,0,0,cv.width,cv.height);
+    try{
+      const t=rd.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(cv)))).getText();
+      return isCode(t)?t:null;
+    }catch(e){return null;} // NotFoundException: no hay código en este fotograma
+  };
+}
 function initBC(){
-  if(!("BarcodeDetector" in window)||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+  if(!canCam()){
     const b=document.getElementById("sc-btn");if(b)b.style.display="none";
-    bcMsg("Este navegador no puede leer códigos con la cámara. Escribe los números que van bajo las barras.");
+    bcMsg("Este navegador no puede usar la cámara. Escribe los números que van bajo las barras.");
   }
 }
 async function startScan(){
   if(_sc.on||_sc.starting)return;
-  if(!("BarcodeDetector" in window)||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){bcMsg("Este navegador no puede leer códigos con la cámara. Escribe los números.");return;}
+  if(!canCam()){bcMsg("Este navegador no puede usar la cámara. Escribe los números.");return;}
   _sc.starting=true;
   try{
-    let fmts=["ean_13","ean_8","upc_a","upc_e"];
-    try{const sup=await BarcodeDetector.getSupportedFormats();const ok=fmts.filter(x=>sup.includes(x));if(ok.length)fmts=ok;}catch(e){}
-    const det=new BarcodeDetector({formats:fmts});
-    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
-    const v=document.getElementById("sc-v");v.srcObject=stream;try{await v.play();}catch(e){}
-    _sc={stream,timer:0,on:true,starting:false};
+    bcMsg("Abriendo la cámara…");
+    const dP=makeDetector();dP.catch(()=>{});
+    // getUserMedia lo primero, para que cuente como gesto del usuario en iOS
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});
+    _sc.stream=stream;
+    let detect;
+    try{detect=await dP;}catch(e){const er=new Error("lector");er.name="LectorError";throw er;}
+    if(!_sc.starting){stopScan();return;} // se canceló mientras cargaba
+    const v=document.getElementById("sc-v");v.srcObject=stream;
     document.getElementById("sc-box").style.display="block";
     document.getElementById("sc-btn").style.display="none";
+    try{await v.play();}catch(e){}
+    _sc={stream,timer:0,on:true,starting:false};
     bcMsg("Apunta al código de barras…");
     const tick=async()=>{
       if(!_sc.on)return;
       try{
         if(v.readyState>=2){
-          const r=await det.detect(v);
-          const hit=r.find(x=>/^\d{8,14}$/.test(x.rawValue||""));
-          if(hit){stopScan();document.getElementById("bc-i").value=hit.rawValue;lookupBarcode(hit.rawValue);return;}
+          const code=await detect(v);
+          if(code&&_sc.on){stopScan();document.getElementById("bc-i").value=code;lookupBarcode(code);return;}
         }
       }catch(e){}
-      if(_sc.on)_sc.timer=setTimeout(tick,250);
+      if(_sc.on)_sc.timer=setTimeout(tick,200);
     };
     tick();
   }catch(e){
-    _sc.starting=false;stopScan();
-    bcMsg(e&&e.name==="NotAllowedError"?"Sin permiso de cámara. Actívalo en los ajustes del navegador o escribe el código.":"No se pudo abrir la cámara ("+((e&&e.name)||"error")+"). Escribe el código a mano.");
+    stopScan();
+    bcMsg(e&&e.name==="NotAllowedError"?"Sin permiso de cámara. Actívalo en Ajustes > Safari > Cámara, o escribe el código.":
+      e&&e.name==="LectorError"?"No se pudo cargar el lector de códigos (¿sin conexión?). Escribe el código a mano.":
+      "No se pudo abrir la cámara ("+((e&&e.name)||"error")+"). Escribe el código a mano.");
   }
 }
 function stopScan(){
@@ -1575,7 +1622,7 @@ function stopScan(){
   if(_sc.stream){_sc.stream.getTracks().forEach(t=>t.stop());_sc.stream=null;}
   const v=document.getElementById("sc-v");if(v)v.srcObject=null;
   const b=document.getElementById("sc-box");if(b)b.style.display="none";
-  const bt=document.getElementById("sc-btn");if(bt&&("BarcodeDetector" in window))bt.style.display="block";
+  const bt=document.getElementById("sc-btn");if(bt&&canCam())bt.style.display="block";
 }
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stopScan();});
 
