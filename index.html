@@ -34,12 +34,14 @@ if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.se
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:var(--sans);font-size:15px;-webkit-font-smoothing:antialiased;}
 button{font-family:var(--sans);cursor:pointer;border:none;outline:none;background:none;}
 input,textarea,select{font-family:var(--sans);outline:none;color:var(--t1);}
-#app{height:100vh;height:100dvh;display:flex;flex-direction:column;max-width:430px;margin:0 auto;overflow:hidden;}
+#app{position:fixed;top:0;bottom:0;left:0;right:0;display:flex;flex-direction:column;max-width:430px;margin:0 auto;overflow:hidden;}
 #pages{flex:1;overflow:hidden;position:relative;}
 .page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(100px + var(--sb));display:none;opacity:0;transition:opacity 0.18s;}
 .page.active{display:block;opacity:1;}
-.pi{padding:calc(var(--st)+28px) 16px 0;}
-#nav{background:rgba(28,28,30,0.96);backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);border-top:0.5px solid rgba(255,255,255,0.12);padding-bottom:calc(var(--sb) + 4px);display:flex;flex-shrink:0;position:relative;}
+.pi{padding:calc(var(--st) + 28px) 16px 0;}
+.sc-line{position:absolute;left:0;right:0;height:2px;background:rgba(255,69,58,0.9);box-shadow:0 0 8px rgba(255,69,58,0.8);animation:scl 1.4s ease-in-out infinite alternate;}
+@keyframes scl{from{top:8%;}to{top:92%;}}
+#nav{background:rgba(28,28,30,0.96);backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);border-top:0.5px solid rgba(255,255,255,0.12);padding-bottom:max(8px, calc(var(--sb) - 12px));display:flex;flex-shrink:0;position:relative;}
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 4px 8px;gap:3px;}
 .nb .ni{font-size:23px;line-height:1;opacity:0.35;transition:all 0.2s cubic-bezier(0.34,1.3,0.64,1);display:block;}
 .nb .nl{font-size:9.5px;font-weight:600;letter-spacing:0.01em;color:var(--t3);transition:color 0.2s;}
@@ -93,7 +95,7 @@ select.inp{-webkit-appearance:none;appearance:none;background-image:url("data:im
 .ms{background:var(--s1);border-radius:20px 20px 0 0;width:100%;max-width:430px;padding:20px 18px calc(20px + var(--sb));max-height:92vh;overflow-y:auto;transform:translateY(60px);transition:transform 0.32s cubic-bezier(0.32,0.72,0,1);}
 .mo.open .ms{transform:translateY(0);}
 .mh{width:36px;height:4px;background:var(--s3);border-radius:99px;margin:0 auto 20px;}
-#setup{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;flex-direction:column;padding:calc(var(--st)+28px) 20px calc(var(--sb)+24px);max-width:430px;margin:0 auto;overflow-y:auto;}
+#setup{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;flex-direction:column;padding:calc(var(--st) + 28px) 20px calc(var(--sb) + 24px);max-width:430px;margin:0 auto;overflow-y:auto;}
 .spin{width:34px;height:34px;border:2.5px solid var(--s3);border-top-color:var(--a);border-radius:50%;animation:sp 0.7s linear infinite;}
 @keyframes sp{to{transform:rotate(360deg);}}
 #toast{position:fixed;bottom:calc(115px + var(--sb));left:50%;transform:translateX(-50%) translateY(12px);background:rgba(44,44,46,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:var(--t1);padding:12px 22px;border-radius:99px;font-size:14px;font-weight:600;opacity:0;transition:all 0.22s;z-index:999;white-space:normal;max-width:min(88vw,380px);text-align:center;border-radius:18px;pointer-events:none;box-shadow:0 4px 24px rgba(0,0,0,0.5);border:0.5px solid rgba(255,255,255,0.12);}
@@ -242,12 +244,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
   </div>
   <div id="qa-bar-panel" style="display:none">
     <div style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:10px">Escanea el código de barras de un producto envasado o escribe los números que lleva debajo.</div>
-    <div id="sc-box" style="display:none;position:relative;border-radius:14px;overflow:hidden;background:#000;margin-bottom:10px;height:200px">
+    <div id="sc-box" style="display:none;position:relative;border-radius:14px;overflow:hidden;background:#000;margin-bottom:10px;height:240px">
       <video id="sc-v" playsinline muted autoplay style="width:100%;height:100%;object-fit:cover"></video>
-      <div style="position:absolute;left:12%;right:12%;top:28%;bottom:28%;border:2px solid rgba(255,255,255,0.85);border-radius:10px;box-shadow:0 0 0 999px rgba(0,0,0,0.35)"></div>
+      <div style="position:absolute;left:7%;right:7%;top:24%;bottom:24%;border:2px solid rgba(255,255,255,0.85);border-radius:10px;box-shadow:0 0 0 999px rgba(0,0,0,0.35);overflow:hidden"><div class="sc-line"></div></div>
       <button onclick="stopScan()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);color:#fff;border-radius:99px;padding:6px 12px;font-size:12px;font-weight:600">✕ Cerrar</button>
+      <button onclick="snapScan()" style="position:absolute;left:50%;transform:translateX(-50%);bottom:10px;background:#0a84ff;color:#fff;border-radius:99px;padding:10px 20px;font-size:14px;font-weight:700;white-space:nowrap">📸 Escanear ahora</button>
     </div>
     <button id="sc-btn" onclick="startScan()" class="btn btn-neon" style="font-size:14px;padding:14px;margin-bottom:10px">📷 Escanear con la cámara</button>
+    <button id="sc-photo" onclick="document.getElementById('sc-file').click()" class="btn btn-secondary" style="font-size:13px;padding:12px;margin-bottom:10px">🖼️ Hacer foto al código</button>
+    <input type="file" id="sc-file" accept="image/*" capture="environment" style="display:none" onchange="scanPhoto(this)">
     <div style="display:flex;gap:8px">
       <input id="bc-i" class="inp" type="text" inputmode="numeric" placeholder="Número bajo las barras" style="flex:1" onkeydown="if(event.key==='Enter')lookupBarcode(this.value)">
       <button id="bc-go" onclick="lookupBarcode(document.getElementById('bc-i').value)" class="btn btn-primary btn-sm" style="flex-shrink:0;width:auto;padding:0 18px">Buscar</button>
@@ -1531,91 +1536,204 @@ function rWChart(){
 }
 
 // ── ESCÁNER DE CÓDIGO DE BARRAS (Open Food Facts) ──
-const bcMsg=m=>{const e=document.getElementById("bc-msg");if(e)e.textContent=m||"";};
-let _sc={stream:null,timer:0,on:false,starting:false};
-// Safari/iPhone (y Firefox) no tienen BarcodeDetector: en esos casos se carga ZXing (JS) solo cuando se pulsa «Escanear».
-const ZX_URL="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
-let _zxP=null;
-const canCam=()=>!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
-function loadZX(){
-  if(window.ZXing)return Promise.resolve();
-  if(_zxP)return _zxP;
-  _zxP=new Promise((ok,ko)=>{
-    const s=document.createElement("script");s.src=ZX_URL;
-    s.onload=()=>window.ZXing?ok():ko(new Error("zxing"));
-    s.onerror=()=>{s.remove();ko(new Error("zxing-load"));};
-    document.head.appendChild(s);
-  }).catch(e=>{_zxP=null;throw e;});
-  return _zxP;
+// ── Lector propio de EAN-13 / EAN-8 / UPC-A (sin librerías: funciona también sin internet) ──
+// <EAN>
+const EAN_L=[[3,2,1,1],[2,2,2,1],[2,1,2,2],[1,4,1,1],[1,1,3,2],[1,2,3,1],[1,1,1,4],[1,3,1,2],[1,2,1,3],[3,1,1,2]];
+const EAN_G=EAN_L.map(p=>p.slice().reverse());
+const EAN_PAR=["LLLLLL","LLGLGG","LLGGLG","LLGGGL","LGLLGG","LGGLLG","LGGGLL","LGLGLG","LGLGGL","LGGLGL"];
+const EAN_G1=[1,1,1],EAN_G2=[1,1,1,1,1];
+function eanVar(c,o,p){ // cuánto se parece el grupo de franjas c[o..] al patrón p (0 = perfecto, 9 = no vale)
+  let t=0,pt=0;for(let i=0;i<p.length;i++){t+=c[o+i];pt+=p[i];}
+  if(t<pt)return 9;
+  const u=t/pt,mi=0.7*u;let tv=0;
+  for(let i=0;i<p.length;i++){const d=Math.abs(c[o+i]-p[i]*u);if(d>mi)return 9;tv+=d;}
+  return tv/t;
 }
-// Devuelve una función detect(video) -> texto del código o null
-async function makeDetector(){
-  const isCode=t=>/^\d{8,14}$/.test(t||"");
-  if("BarcodeDetector" in window){
-    let fmts=["ean_13","ean_8","upc_a","upc_e"];
-    try{const sup=await BarcodeDetector.getSupportedFormats();const ok=fmts.filter(x=>sup.includes(x));if(ok.length)fmts=ok;}catch(e){}
-    const det=new BarcodeDetector({formats:fmts});
-    return async v=>{const r=await det.detect(v);const h=r.find(x=>isCode(x.rawValue));return h?h.rawValue:null;};
+function eanDigit(c,o,withG){ // devuelve dígito*2 + (1 si es código G), o -1
+  let best=0.48,bd=-1,bg=0;
+  for(let d=0;d<10;d++){
+    let v=eanVar(c,o,EAN_L[d]);if(v<best){best=v;bd=d;bg=0;}
+    if(withG){v=eanVar(c,o,EAN_G[d]);if(v<best){best=v;bd=d;bg=1;}}
   }
-  await loadZX();
-  const Z=window.ZXing,hints=new Map();
-  hints.set(Z.DecodeHintType.POSSIBLE_FORMATS,[Z.BarcodeFormat.EAN_13,Z.BarcodeFormat.EAN_8,Z.BarcodeFormat.UPC_A,Z.BarcodeFormat.UPC_E]);
-  hints.set(Z.DecodeHintType.TRY_HARDER,true);
-  const rd=new Z.MultiFormatReader();rd.setHints(hints);
-  const cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true});
-  return async v=>{
-    const w=v.videoWidth,h=v.videoHeight;if(!w||!h)return null;
-    const sx=Math.round(w*0.08),sy=Math.round(h*0.2),sw=Math.round(w*0.84),sh=Math.round(h*0.6); // zona central
-    const k=Math.min(1,960/sw);cv.width=Math.round(sw*k);cv.height=Math.round(sh*k);
-    cx.drawImage(v,sx,sy,sw,sh,0,0,cv.width,cv.height);
-    try{
-      const t=rd.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(cv)))).getText();
-      return isCode(t)?t:null;
-    }catch(e){return null;} // NotFoundException: no hay código en este fotograma
-  };
+  return bd<0?-1:bd*2+bg;
 }
+function eanChk(d){
+  const n=d.length-1;let s=0;
+  for(let i=0;i<n;i++)s+=d[i]*(n===12?(i%2?3:1):(i%2?1:3));
+  return (10-s%10)%10===d[n];
+}
+function eanTry(r,s){
+  const n=r.length;
+  for(const big of [true,false]){
+    const nd=big?6:4,tot=big?59:43,mods=big?95:67;
+    if(s+tot>n)continue;
+    let o=s+3,ok=true,par="";const d=[];
+    for(let k=0;k<nd;k++){const m=eanDigit(r,o,big);if(m<0){ok=false;break;}d.push(m>>1);par+=(m&1)?"G":"L";o+=4;}
+    if(!ok)continue;
+    let first=0;
+    if(big){first=EAN_PAR.indexOf(par);if(first<0)continue;}
+    if(eanVar(r,o,EAN_G2)>0.48)continue;o+=5;
+    for(let k=0;k<nd;k++){const m=eanDigit(r,o,false);if(m<0){ok=false;break;}d.push(m>>1);o+=4;}
+    if(!ok)continue;
+    if(eanVar(r,o,EAN_G1)>0.48)continue;
+    if(big)d.unshift(first);
+    if(!eanChk(d))continue;
+    let sum=0;for(let i=s;i<s+tot;i++)sum+=r[i];
+    const unit=sum/mods,g=(r[s]+r[s+1]+r[s+2])/3;
+    if(g<unit*0.6||g>unit*1.6)continue; // las guardas deben medir como el resto
+    if(s>0&&r[s-1]<unit*2.5)continue; // debe haber un margen en blanco antes del código
+    let okw=true; // cada dígito (7 módulos) debe medir lo mismo
+    for(let q=s+3,k=0;k<nd*2&&okw;k++){const o2=q+(k<nd?k*4:5+k*4);const t=r[o2]+r[o2+1]+r[o2+2]+r[o2+3];if(Math.abs(t-7*unit)>2.4*unit)okw=false;}
+    if(!okw)continue;
+    return d.join("");
+  }
+  return null;
+}
+function eanRuns(r,fd){ // r: anchuras alternas de franjas; fd: la primera es oscura
+  const n=r.length;
+  for(let s=fd?0:1;s+43<=n;s+=2){
+    if(eanVar(r,s,EAN_G1)>0.48)continue;
+    const a=eanTry(r,s);if(a)return a;
+  }
+  return null;
+}
+function eanLine(L,n){ // L: luminosidad de una línea de la imagen
+  if(n<80)return null;
+  const S=new Float32Array(n);S[0]=L[0];S[n-1]=L[n-1];
+  let mn=255,mx=0;
+  for(let i=1;i<n-1;i++){const v=(L[i-1]+2*L[i]+L[i+1])*0.25;S[i]=v;if(v<mn)mn=v;if(v>mx)mx=v;}
+  if(mx-mn<25)return null; // línea sin contraste
+  // umbral local = punto medio entre el negro y el blanco de la zona (aguanta desenfoque y sombras)
+  const B=12,nb=Math.ceil(n/B),bmn=new Float32Array(nb).fill(255),bmx=new Float32Array(nb);
+  for(let i=0;i<n;i++){const b=(i/B)|0;if(S[i]<bmn[b])bmn[b]=S[i];if(S[i]>bmx[b])bmx[b]=S[i];}
+  const tw=Math.max(3,Math.round(n/(B*9))),T=new Float32Array(n);
+  for(let b=0;b<nb;b++){
+    let lo=255,hi=0;
+    for(let q=Math.max(0,b-tw);q<=Math.min(nb-1,b+tw);q++){if(bmn[q]<lo)lo=bmn[q];if(bmx[q]>hi)hi=bmx[q];}
+    const t=hi-lo<22?lo-1:(lo+hi)*0.5; // sin contraste: nunca "oscuro"
+    for(let i=b*B;i<Math.min(n,b*B+B);i++)T[i]=t;
+  }
+  const r=[];let last=-1,fd=false;
+  for(let i=0;i<n-1;i++){
+    const c0=S[i]<T[i],c1=S[i+1]<T[i+1];
+    if(c0!==c1){
+      const d0=S[i]-T[i],d1=S[i+1]-T[i+1],f=d0/(d0-d1);
+      const e=i+(isFinite(f)?Math.min(1,Math.max(0,f)):0.5);
+      if(last<0)fd=c1;else r.push(e-last);
+      last=e;
+    }
+  }
+  if(r.length<43)return null;
+  let a=eanRuns(r,fd);if(a)return a;
+  const m=r.length;r.reverse(); // código boca abajo
+  return eanRuns(r,(m-1)%2===0?fd:!fd);
+}
+function eanScan(g,w,h,nRows){ // g: grises w*h. Devuelve {codigo: nº de líneas que lo leyeron}
+  const hits={},add=c=>{if(c)hits[c]=(hits[c]||0)+1;};
+  const L=new Float32Array(Math.max(w,h));
+  const line=(n)=>{add(eanLine(L,n));if(n>=700){const H=n>>1,Lh=new Float32Array(H);for(let i=0;i<H;i++)Lh[i]=(L[2*i]+L[2*i+1])*0.5;add(eanLine(Lh,H));}};
+  for(let k=0;k<nRows;k++){ // líneas horizontales
+    const y=Math.round(h*(0.08+0.84*(k+0.5)/nRows));
+    for(let x=0;x<w;x++){let s=0,c=0;for(let dy=-1;dy<=1;dy++){const yy=y+dy;if(yy>=0&&yy<h){s+=g[yy*w+x];c++;}}L[x]=s/c;}
+    line(w);
+  }
+  for(let k=0;k<nRows;k++){ // líneas verticales (código girado 90°)
+    const x=Math.round(w*(0.08+0.84*(k+0.5)/nRows));
+    for(let y=0;y<h;y++){let s=0,c=0;for(let dx=-1;dx<=1;dx++){const xx=x+dx;if(xx>=0&&xx<w){s+=g[y*w+xx];c++;}}L[y]=s/c;}
+    line(h);
+  }
+  return hits;
+}
+// </EAN>
+const bcMsg=m=>{const e=document.getElementById("bc-msg");if(e)e.textContent=m||"";};
+const canCam=()=>!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+let _sc={stream:null,timer:0,on:false,starting:false,votes:{},seen:0,t0:0,hinted:false,nat:null};
+let _cv=null;
+function grabGray(src,sx,sy,sw,sh,maxW){ // copia una zona de vídeo/imagen a escala de grises
+  if(!_cv){_cv=document.createElement("canvas");_cv.ctx=_cv.getContext("2d",{willReadFrequently:true});}
+  const k=Math.min(1,maxW/sw),W=Math.max(1,Math.round(sw*k)),H=Math.max(1,Math.round(sh*k));
+  _cv.width=W;_cv.height=H;
+  _cv.ctx.drawImage(src,sx,sy,sw,sh,0,0,W,H);
+  const d=_cv.ctx.getImageData(0,0,W,H).data,g=new Uint8Array(W*H);
+  for(let i=0,j=0;i<g.length;i++,j+=4)g[i]=(d[j]*77+d[j+1]*150+d[j+2]*29)>>8;
+  return {g,w:W,h:H};
+}
+function viewGray(v,maxW){ // solo la parte del vídeo que se ve en el recuadro
+  const vw=v.videoWidth,vh=v.videoHeight,bw=v.clientWidth||vw,bh=v.clientHeight||vh;
+  const sc=Math.max(bw/vw,bh/vh),sw=Math.min(vw,bw/sc),sh=Math.min(vh,bh/sc);
+  return grabGray(v,(vw-sw)/2,(vh-sh)/2,sw,sh,maxW);
+}
+const bestOf=h=>{let b=null;for(const c in h)if(!b||h[c]>h[b])b=c;return b;};
+function gotCode(code){stopScan();document.getElementById("bc-i").value=code;lookupBarcode(code);}
 function initBC(){
   if(!canCam()){
     const b=document.getElementById("sc-btn");if(b)b.style.display="none";
-    bcMsg("Este navegador no puede usar la cámara. Escribe los números que van bajo las barras.");
+    bcMsg("Este navegador no puede abrir la cámara en directo. Usa «Hacer foto al código» o escribe los números.");
   }
 }
 async function startScan(){
   if(_sc.on||_sc.starting)return;
-  if(!canCam()){bcMsg("Este navegador no puede usar la cámara. Escribe los números.");return;}
+  if(!canCam()){bcMsg("Este navegador no puede abrir la cámara en directo. Usa «Hacer foto al código» o escribe los números.");return;}
   _sc.starting=true;
   try{
     bcMsg("Abriendo la cámara…");
-    const dP=makeDetector();dP.catch(()=>{});
-    // getUserMedia lo primero, para que cuente como gesto del usuario en iOS
-    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}},audio:false});
     _sc.stream=stream;
-    let detect;
-    try{detect=await dP;}catch(e){const er=new Error("lector");er.name="LectorError";throw er;}
-    if(!_sc.starting){stopScan();return;} // se canceló mientras cargaba
+    try{await stream.getVideoTracks()[0].applyConstraints({advanced:[{focusMode:"continuous"}]});}catch(e){}
+    let nat=null;
+    if("BarcodeDetector" in window){ // Chrome en Android: detector nativo, más rápido
+      try{let f=["ean_13","ean_8","upc_a","upc_e"];const sup=await BarcodeDetector.getSupportedFormats();const ok=f.filter(x=>sup.includes(x));nat=new BarcodeDetector({formats:ok.length?ok:f});}catch(e){nat=null;}
+    }
+    if(!_sc.starting){stopScan();return;}
     const v=document.getElementById("sc-v");v.srcObject=stream;
     document.getElementById("sc-box").style.display="block";
     document.getElementById("sc-btn").style.display="none";
     try{await v.play();}catch(e){}
-    _sc={stream,timer:0,on:true,starting:false};
-    bcMsg("Apunta al código de barras…");
+    _sc={stream,timer:0,on:true,starting:false,votes:{},seen:0,t0:Date.now(),hinted:false,nat};
+    bcMsg("Apunta al código: horizontal, a unos 15-20 cm y con buena luz. Se lee solo.");
     const tick=async()=>{
       if(!_sc.on)return;
       try{
-        if(v.readyState>=2){
-          const code=await detect(v);
-          if(code&&_sc.on){stopScan();document.getElementById("bc-i").value=code;lookupBarcode(code);return;}
+        if(v.readyState>=2&&v.videoWidth){
+          let found=null;
+          if(nat){try{const r=await nat.detect(v);const h=r.find(x=>/^\d{8,14}$/.test(x.rawValue||""));if(h)found=h.rawValue;}catch(e){}}
+          if(!found){
+            const f=viewGray(v,960),hits=eanScan(f.g,f.w,f.h,25),now=Date.now();
+            if(now-_sc.seen>1500)_sc.votes={};
+            for(const c in hits){_sc.votes[c]=(_sc.votes[c]||0)+hits[c];_sc.seen=now;}
+            const b=bestOf(_sc.votes);if(b&&_sc.votes[b]>=2)found=b; // hace falta verlo dos veces
+          }
+          if(found&&_sc.on){gotCode(found);return;}
+          if(!_sc.hinted&&Date.now()-_sc.t0>8000){_sc.hinted=true;bcMsg("Aún no lo leo. Prueba a acercar o alejar un poco el móvil, evita reflejos, o pulsa «Escanear ahora». También puedes usar «Hacer foto al código».");}
         }
       }catch(e){}
-      if(_sc.on)_sc.timer=setTimeout(tick,200);
+      if(_sc.on)_sc.timer=setTimeout(tick,120);
     };
     tick();
   }catch(e){
     stopScan();
-    bcMsg(e&&e.name==="NotAllowedError"?"Sin permiso de cámara. Actívalo en Ajustes > Safari > Cámara, o escribe el código.":
-      e&&e.name==="LectorError"?"No se pudo cargar el lector de códigos (¿sin conexión?). Escribe el código a mano.":
-      "No se pudo abrir la cámara ("+((e&&e.name)||"error")+"). Escribe el código a mano.");
+    bcMsg(e&&e.name==="NotAllowedError"?"Sin permiso de cámara. Actívalo en Ajustes > Safari > Cámara, o escribe el código.":"No se pudo abrir la cámara ("+((e&&e.name)||"error")+"). Usa «Hacer foto al código» o escribe el código.");
   }
+}
+function snapScan(){ // botón «Escanear ahora»: un fotograma completo, con más esfuerzo
+  const v=document.getElementById("sc-v");
+  if(!_sc.on||!v.videoWidth)return;
+  const f=grabGray(v,0,0,v.videoWidth,v.videoHeight,1600),hits=eanScan(f.g,f.w,f.h,61),b=bestOf(hits);
+  if(b)gotCode(b);else bcMsg("No he podido leer esa captura. Acerca o aleja un poco el móvil, mantén el código recto y sin reflejos, y vuelve a pulsar.");
+}
+function scanPhoto(inp){ // «Hacer foto al código»: usa la cámara normal del móvil (con enfoque automático)
+  const file=inp.files&&inp.files[0];inp.value="";
+  if(!file)return;
+  stopScan();bcMsg("Leyendo la foto…");
+  const img=new Image(),url=URL.createObjectURL(file);
+  img.onload=()=>{
+    let b=null;
+    try{for(const mw of [1800,1100]){const f=grabGray(img,0,0,img.naturalWidth,img.naturalHeight,mw);b=bestOf(eanScan(f.g,f.w,f.h,61));if(b)break;}}catch(e){}
+    URL.revokeObjectURL(url);
+    if(b)gotCode(b);else bcMsg("No he encontrado un código de barras en la foto. Hazla más de cerca, con el código recto y bien enfocado, o escribe los números.");
+  };
+  img.onerror=()=>{URL.revokeObjectURL(url);bcMsg("No se pudo abrir la foto. Escribe los números del código.");};
+  img.src=url;
 }
 function stopScan(){
   _sc.on=false;_sc.starting=false;clearTimeout(_sc.timer);
@@ -1680,9 +1798,23 @@ function openProd(food,brand,srv){ // reutiliza el modal de porciones de la pest
   cP();oM("m-por");
 }
 
+// ── Ajuste para la app en pantalla de inicio de iPhone ──
+// Si iOS calcula la altura de la ventana más corta que la pantalla (queda un hueco abajo, ~47 px), estiramos #app hasta abajo.
+function fitApp(){
+  const app=document.getElementById("app");if(!app)return;
+  app.style.bottom="";app.style.height="";
+  if(!navigator.standalone)return; // solo existe en iOS cuando se abre desde el icono
+  const portrait=innerHeight>=innerWidth;
+  const full=portrait?Math.max(screen.width,screen.height):Math.min(screen.width,screen.height);
+  const gap=full-innerHeight;
+  if(gap>20&&gap<80){app.style.bottom="auto";app.style.height=full+"px";}
+}
+window.addEventListener("resize",fitApp);
+window.addEventListener("orientationchange",()=>setTimeout(fitApp,300));
+
 // ── INIT ──
 window.addEventListener("DOMContentLoaded",()=>{
-  initS();rF();rMore();uH();renderFav();initBC();
+  fitApp();initS();rF();rMore();uH();renderFav();initBC();
   const dv=S.profile?.customDef||550;
   const sl=document.getElementById("def-slider");
   if(sl){sl.value=dv;document.getElementById("slider-val").textContent=dv;document.getElementById("slider-loss").textContent=(dv/7700*7).toFixed(2)+" kg/sem";}
