@@ -5,7 +5,8 @@ const PROVIDER = () => (process.env.PROVIDER || "gemini").toLowerCase();
 
 // Modelos configurables por entorno (los nombres de modelo cambian con el tiempo).
 const MODELS = {
-  gemini: () => process.env.GEMINI_MODEL || "gemini-2.5-flash",
+  // "gemini-flash-latest" es un alias de Google que apunta al Flash vigente → evita que se rompa al retirar modelos.
+  gemini: () => process.env.GEMINI_MODEL || "gemini-flash-latest",
   claude: () => process.env.CLAUDE_MODEL || "claude-haiku-4-5-20251001",
   groq: () => process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
   groqVision: () => process.env.GROQ_VISION_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct",
@@ -79,11 +80,17 @@ async function generate(parts, { maxTokens = 1000, temperature = 0.3 } = {}) {
           role: "user",
           parts: parts.map((p) => (p.image ? { inline_data: { mime_type: p.image.mime, data: p.image.data } } : { text: p.text })),
         }],
-        generationConfig: { maxOutputTokens: maxTokens, temperature },
+        // Los modelos Gemini recientes "piensan" y esos tokens cuentan dentro de maxOutputTokens.
+        // Sin margen extra, la respuesta puede quedar cortada o vacía → sumamos holgura.
+        generationConfig: { maxOutputTokens: maxTokens + 4096, temperature },
       }
     );
-    const txt = (j?.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
-    if (!txt) throw new Error("Respuesta vacía de Gemini");
+    const cand = j?.candidates?.[0];
+    const txt = (cand?.content?.parts || []).filter((p) => !p.thought).map((p) => p.text || "").join("");
+    if (!txt) {
+      const why = cand?.finishReason || j?.promptFeedback?.blockReason || "desconocido";
+      throw new Error(`Respuesta vacía de Gemini (motivo: ${why})`);
+    }
     return txt;
   }
 
