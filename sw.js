@@ -2,7 +2,7 @@
 // Estrategia: red primero con límite de espera. Si la red responde en menos de NET_TIMEOUT ms se usa
 // la versión más nueva; si va lenta o no hay conexión, se sirve lo último guardado (y la caché se
 // actualiza igualmente en segundo plano). Las llamadas a /api/ (la IA) NUNCA se guardan ni se interceptan.
-const CACHE = "nutri-ai-v6";
+const CACHE = "nutri-ai-v7";
 const NET_TIMEOUT = 3000;
 // Imprescindibles para abrir la app. Si falla alguno, no se instala.
 const CORE = ["/", "/index.html"];

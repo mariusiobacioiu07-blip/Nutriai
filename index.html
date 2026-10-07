@@ -214,7 +214,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
     </div>
   </div>
   <div class="stats-grid">
-    <div class="stat-cell"><div class="label" style="margin-bottom:2px">RESTANTES</div><div class="stat-val neon-text" id="h-rem">—</div><div style="font-size:10px;color:var(--t3)">kcal</div></div>
+    <div class="stat-cell"><div class="label" style="margin-bottom:2px">RESTANTES</div><div class="stat-val neon-text" id="h-rem">—</div><div style="font-size:10px;color:var(--t3)">kcal</div><div style="margin-top:8px;padding-top:6px;border-top:0.5px solid var(--br)"><div class="label" id="h-defl" style="margin-bottom:2px">DÉFICIT HOY</div><div id="h-def" style="font-size:17px;font-weight:700;color:var(--t3)">—</div><div style="font-size:10px;color:var(--t3)">kcal</div></div></div>
     <div class="stat-cell" onclick="openXk()" style="cursor:pointer"><div class="label" style="margin-bottom:2px">EJERCICIO</div><div class="stat-val" style="color:var(--purple)" id="h-ex">0</div><div id="h-exnote" style="font-size:10px;color:var(--t3)">quemadas</div><div style="margin-top:6px"><span style="display:inline-block;background:rgba(10,132,255,0.14);color:var(--a);font-weight:700;font-size:11px;border-radius:99px;padding:4px 11px">＋ kcal</span></div></div>
     <div class="stat-cell"><div class="label" style="margin-bottom:2px">AGUA</div><div class="stat-val" style="color:var(--blue)" id="h-wat">0/8</div><div style="font-size:10px;color:var(--t3)">vasos</div></div>
   </div>
@@ -748,6 +748,8 @@ function uH(){
   document.getElementById("h-str").textContent=strk()+"🔥";
   document.getElementById("r-cal").textContent=Math.round(t.cal);
   document.getElementById("r-goal").textContent=tgt;const lf=document.getElementById("r-left");if(lf){lf.textContent=rem>=0?"quedan "+Math.round(rem):"te pasas "+Math.round(-rem);lf.style.color=rem>=0?"var(--a)":"var(--red)";}const sp=document.getElementById("h-spent");if(sp)sp.textContent=m?(m.tdeToday+Math.round(exC*exF())).toLocaleString("es-ES")+" kcal":"—";
+  const dfE=document.getElementById("h-def"),dfL=document.getElementById("h-defl");
+  if(dfE&&m){const defHoy=Math.round(m.tdeToday+exC*exF()-t.cal);dfE.textContent=(defHoy>0?"−":defHoy<0?"+":"")+Math.abs(defHoy).toLocaleString("es-ES");dfE.style.color=defHoy>0?"var(--green)":defHoy<0?"var(--red)":"var(--t3)";if(dfL)dfL.textContent=defHoy<0?"SUPERÁVIT HOY":"DÉFICIT HOY";}else if(dfE){dfE.textContent="—";}
   const re=document.getElementById("h-rem");re.textContent=Math.round(rem);re.style.color=rem<0?"var(--red)":"var(--a)";
   document.getElementById("h-ex").textContent=exC;document.getElementById("h-exnote").textContent="quemadas · cuentan "+Math.round(exF()*100)+" %";
   document.getElementById("h-wat").textContent=S.water+"/"+(S.profile?.waterGoal||8);
